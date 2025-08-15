@@ -6,7 +6,7 @@ Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
 Versión con una interfaz de usuario completamente rediseñada para ser más
-limpia, moderna y profesional, inspirada en el layout de BIOETHICARE 360.
+limpia, moderna y profesional.
 - Navegación principal por pestañas (st.tabs).
 - Barra lateral dedicada a la gestión de sesión del usuario.
 - Estilo visual mejorado con contenedores y CSS personalizado.
@@ -30,10 +30,8 @@ st.set_page_config(page_title="Predictor de Diabetes con IA", layout="wide", ini
 # CSS para un look más profesional
 st.markdown("""
 <style>
-    /* Ocultar el menú de Streamlit y el pie de página */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    /* Estilo para los contenedores */
     .st-emotion-cache-1r4qj8v {
         border-radius: 0.5rem;
     }
@@ -79,7 +77,7 @@ if not GEMINI_API_KEY:
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
 
-# --- CLASES Y FUNCIONES (Sin cambios en la lógica) ---
+# --- CLASES Y FUNCIONES ---
 
 class PDF(FPDF):
     def header(self):
