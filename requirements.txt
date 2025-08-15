@@ -4,3 +4,4 @@ requests
 fpdf
 Pyrebase4
 plotly
+setuptools
