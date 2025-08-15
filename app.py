@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v5.0
+Software Predictivo de Diabetes con IA v5.1 (Final)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión final que utiliza un archivo de configuración 'config.yaml' para el
-autenticador y carga las credenciales de Firebase desde los secretos de Streamlit,
-solucionando todos los errores anteriores de formato e inicialización.
+Versión final que corrige el error de deprecación del parámetro 'preauthorized'
+en la librería streamlit-authenticator.
 """
 
 import streamlit as st
@@ -31,16 +30,11 @@ except FileNotFoundError:
     st.error("Error: No se encontró el archivo 'config.yaml'. Asegúrate de que esté en tu repositorio de GitHub.")
     st.stop()
 
-# Configuración de Firebase desde los secretos de Streamlit (VERSIÓN CORREGIDA)
+# Configuración de Firebase desde los secretos de Streamlit
 try:
-    # Crea una copia mutable del diccionario de secretos
     firebase_secrets_dict = dict(st.secrets["firebase_credentials"])
-    
-    # Reemplaza los marcadores de nueva línea en la clave privada de la copia
     firebase_secrets_dict["private_key"] = firebase_secrets_dict["private_key"].replace('\\n', '\n')
-
     if not firebase_admin._apps:
-        # Usa el diccionario corregido para inicializar Firebase
         cred = credentials.Certificate(firebase_secrets_dict)
         firebase_admin.initialize_app(cred)
     db = firestore.client()
@@ -48,18 +42,19 @@ except Exception as e:
     st.error(f"Error crítico al inicializar Firebase: {e}. Revisa tus secretos.")
     st.stop()
 
-# Creación de la instancia del autenticador
+# Creación de la instancia del autenticador (VERSIÓN CORREGIDA)
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
     config['cookie']['key'],
     config['cookie']['expiry_days'],
-    config['preauthorized']
+    # Se utiliza el nuevo nombre del parámetro 'preauthorization'
+    config['preauthorization']
 )
 
 # --- CLASES Y FUNCIONES ---
-# (Aquí se incluyen todas las funciones que habíamos construido antes)
-GEMINI_API_KEY = "TU_API_KEY_DE_GEMINI" # Asegúrate de poner tu clave de Gemini aquí o en los secretos
+# (El resto de las funciones no necesitan cambios)
+GEMINI_API_KEY = "TU_API_KEY_DE_GEMINI"
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
 
 class PDF(FPDF):
@@ -116,7 +111,6 @@ def obtener_interpretacion_riesgo(score):
     elif 15 <= score <= 20: return "Riesgo alto", "1 de cada 3."
     else: return "Riesgo muy alto", "1 de cada 2."
 def obtener_analisis_ia(datos_usuario, puntaje, nivel_riesgo, estimacion):
-    # ... (código de la función sin cambios)
     return "Análisis de IA (función sin cambios)"
 def guardar_datos_en_firestore(user_id, datos):
     if not db: return
@@ -199,7 +193,6 @@ if st.session_state["authentication_status"]:
             with st.chat_message("user"): st.markdown(prompt)
             with st.chat_message("assistant"):
                 with st.spinner("Pensando..."):
-                    # Lógica del chatbot
                     st.markdown("Respuesta del chatbot.")
 
 elif st.session_state["authentication_status"] is False:
