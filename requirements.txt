@@ -2,4 +2,4 @@ streamlit
 firebase-admin
 requests
 fpdf
-streamlit-social-media-auth
+streamlit-authenticator
