@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v5.3 (Final)
+Software Predictivo de Diabetes con IA v5.4 (Estable)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión final que corrige el error 'unexpected keyword argument' en la función
-register_user, alineando el código con la última versión de la librería
-streamlit-authenticator.
+Versión estable que simplifica el sistema de autenticación para eliminar
+errores de librería y asegurar la funcionalidad del login y registro.
 """
 
 import streamlit as st
 import firebase_admin
-from firebase_admin import credentials, firestore, auth
+from firebase_admin import credentials, firestore
 import yaml
 from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
@@ -43,7 +42,7 @@ except Exception as e:
     st.error(f"Error crítico al inicializar Firebase: {e}. Revisa tus secretos.")
     st.stop()
 
-# Creación de la instancia del autenticador
+# Creación de la instancia del autenticador (Simplificado)
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
@@ -197,13 +196,14 @@ elif st.session_state["authentication_status"] is False:
     st.error('Usuario/contraseña incorrectos')
 elif st.session_state["authentication_status"] is None:
     st.warning('Por favor, introduce tu usuario y contraseña')
+    # Pestaña para el registro de nuevos usuarios
     try:
-        # La función de registro ahora es más simple
-        if authenticator.register_user('Registrar nuevo usuario'):
+        if authenticator.register_user('Registrar nuevo usuario', location='main'):
             st.success('¡Usuario registrado con éxito! Por favor, inicia sesión.')
-            # Actualiza el archivo config.yaml en tu repositorio para guardar el nuevo usuario
+            # Importante: El nuevo usuario se añade al objeto 'config' en memoria.
+            # Para hacerlo permanente, debes guardar este objeto 'config' de nuevo.
             with open('config.yaml', 'w') as file:
                 yaml.dump(config, file, default_flow_style=False)
-            st.info("El nuevo usuario ha sido guardado en la configuración.")
+            st.info("El nuevo usuario ha sido añadido al archivo de configuración.")
     except Exception as e:
         st.error(e)
