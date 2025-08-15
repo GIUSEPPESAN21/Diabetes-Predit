@@ -3,4 +3,4 @@ firebase-admin
 requests
 fpdf
 Pyrebase4
-setuptools
+plotly
