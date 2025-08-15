@@ -5,8 +5,8 @@ Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión final y estable que corrige todos los errores de autenticación
-simplificando la función de registro para máxima compatibilidad.
+Versión final y estable que corrige el error 'got multiple values for argument'
+en la función de registro para asegurar la funcionalidad del login y el registro de nuevos usuarios.
 """
 
 import streamlit as st
@@ -42,7 +42,7 @@ except Exception as e:
     st.error(f"Error crítico al inicializar Firebase: {e}. Revisa tus secretos.")
     st.stop()
 
-# Creación de la instancia del autenticador (Simplificado)
+# Creación de la instancia del autenticador
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
@@ -130,6 +130,18 @@ def cargar_datos_de_firestore(user_id):
 # --- INTERFAZ DE USUARIO ---
 st.set_page_config(page_title="Predictor de Diabetes con IA", layout="wide")
 
+# Mover el registro fuera del área de login para evitar conflictos
+if 'authentication_status' not in st.session_state or st.session_state["authentication_status"] is None:
+    try:
+        if authenticator.register_user('Registrar nuevo usuario', location='main'):
+            st.success('¡Usuario registrado con éxito! Por favor, inicia sesión.')
+            # Actualiza el archivo config.yaml en tu repositorio para guardar el nuevo usuario
+            with open('config.yaml', 'w') as file:
+                yaml.dump(config, file, default_flow_style=False)
+            st.info("El nuevo usuario ha sido añadido al archivo de configuración. Refresca la página para ver los cambios.")
+    except Exception as e:
+        st.error(e)
+
 authenticator.login()
 
 if st.session_state["authentication_status"]:
@@ -195,15 +207,5 @@ if st.session_state["authentication_status"]:
 elif st.session_state["authentication_status"] is False:
     st.error('Usuario/contraseña incorrectos')
 elif st.session_state["authentication_status"] is None:
-    st.warning('Por favor, introduce tu usuario y contraseña')
-    # Pestaña para el registro de nuevos usuarios (VERSIÓN CORREGIDA)
-    try:
-        # Se elimina el parámetro 'preauthorization' que causaba el error
-        if authenticator.register_user('Registrar nuevo usuario', location='main'):
-            st.success('¡Usuario registrado con éxito! Por favor, inicia sesión.')
-            # Actualiza el archivo config.yaml para guardar el nuevo usuario
-            with open('config.yaml', 'w') as file:
-                yaml.dump(config, file, default_flow_style=False)
-            st.info("El nuevo usuario ha sido añadido al archivo de configuración.")
-    except Exception as e:
-        st.error(e)
+    st.warning('Por favor, introduce tu usuario y contraseña para iniciar sesión.')
+
