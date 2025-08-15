@@ -10,9 +10,5 @@ credentials:
       password: '$2b$12$Eix1ep3lYI8d.X.zzq2a5O4.gLw1y2i2m3gLzdf.eSEi2L.a.dY/e'
 cookie:
   expiry_days: 30
-  key: 'random_signature_key'
-  name: 'random_cookie_name'
-# El nombre del parámetro ha sido corregido aquí:
-preauthorization:
-  emails:
-  - melsby@gmail.com
+  key: 'a_secret_key_you_should_change' # Cambia esto por cualquier frase
+  name: 'a_cookie_name_you_should_change' # Cambia esto también
