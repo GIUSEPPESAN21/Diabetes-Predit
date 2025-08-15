@@ -5,12 +5,10 @@ Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión final y estable que integra todas las funcionalidades solicitadas,
-basada en la arquitectura del software BIOETHICARE 360.
-- Autenticación de cliente con Pyrebase (corrige el guardado de datos).
-- Análisis de riesgo detallado con Gemini AI.
+Versión final y estable que integra todas las funcionalidades solicitadas.
+- Autenticación de cliente con Pyrebase para un registro y login robusto.
+- Análisis de riesgo detallado y chatbot interactivo con Gemini AI.
 - Generación de reportes profesionales en PDF con gráficos.
-- Chatbot interactivo con preguntas preestablecidas.
 - Visualización de riesgo con un gráfico de velocímetro (gauge chart).
 """
 
@@ -30,29 +28,41 @@ import tempfile
 
 # 1. SDK de Administrador (para acceder a la base de datos)
 try:
-    firebase_secrets_dict = dict(st.secrets["firebase_credentials"])
-    firebase_secrets_dict["private_key"] = firebase_secrets_dict["private_key"].replace('\\n', '\n')
-    if not firebase_admin._apps:
-        cred = credentials.Certificate(firebase_secrets_dict)
-        firebase_admin.initialize_app(cred)
-    db = firestore.client()
+    if "firebase_credentials" in st.secrets:
+        firebase_secrets_dict = dict(st.secrets["firebase_credentials"])
+        firebase_secrets_dict["private_key"] = firebase_secrets_dict["private_key"].replace('\\n', '\n')
+        if not firebase_admin._apps:
+            cred = credentials.Certificate(firebase_secrets_dict)
+            firebase_admin.initialize_app(cred)
+        db = firestore.client()
+    else:
+        st.error("Error crítico: No se encontraron las credenciales de Firebase Admin en los secretos.")
+        st.stop()
 except Exception as e:
     st.error(f"Error crítico al inicializar Firebase Admin: {e}. Revisa tus secretos.")
     st.stop()
 
 # 2. SDK de Cliente con Pyrebase (para registrar y loguear usuarios)
 try:
-    firebase_client_config = dict(st.secrets["firebase_client_config"])
-    firebase = pyrebase.initialize_app(firebase_client_config)
-    auth_client = firebase.auth()
+    if "firebase_client_config" in st.secrets:
+        firebase_client_config = dict(st.secrets["firebase_client_config"])
+        firebase = pyrebase.initialize_app(firebase_client_config)
+        auth_client = firebase.auth()
+    else:
+        st.error("Error crítico: No se encontró la configuración del cliente de Firebase en los secretos.")
+        st.stop()
 except Exception as e:
     st.error(f"Error crítico al inicializar la autenticación de Firebase: {e}. Revisa la sección [firebase_client_config] en tus secretos.")
     st.stop()
 
-# --- CLASES Y FUNCIONES ---
-# Asegúrate de añadir tu clave de API de Gemini a los secretos de Streamlit
-GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "TU_API_KEY_DE_GEMINI")
+# 3. Clave de API de Gemini
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    st.warning("Clave de API de Gemini no encontrada. Las funciones de IA estarán deshabilitadas.")
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+
+
+# --- CLASES Y FUNCIONES ---
 
 class PDF(FPDF):
     def header(self):
@@ -79,7 +89,6 @@ def generar_pdf(datos_reporte, grafico_path):
     pdf = PDF()
     pdf.add_page()
     
-    # Datos del Paciente
     pdf.chapter_title('1. Datos del Paciente')
     fecha_reporte = datetime.now().strftime('%d/%m/%Y')
     info_paciente = (f"Fecha del reporte: {fecha_reporte}\n"
@@ -89,24 +98,20 @@ def generar_pdf(datos_reporte, grafico_path):
                      f"Perímetro de cintura: {datos_reporte['cintura']} cm")
     pdf.chapter_body(info_paciente)
 
-    # Resultados del Test
     pdf.chapter_title('2. Resultados del Cuestionario FINDRISC')
     resultados = (f"Puntaje Total: {datos_reporte['puntaje']} puntos\n"
                   f"Nivel de Riesgo: {datos_reporte['nivel_riesgo']}\n"
                   f"Estimación a 10 años: {datos_reporte['estimacion']}")
     pdf.chapter_body(resultados)
     
-    # Gráfico de Riesgo
     if grafico_path and os.path.exists(grafico_path):
         pdf.image(grafico_path, x=pdf.get_x(), y=pdf.get_y(), w=180)
-        pdf.ln(85) # Espacio después del gráfico
+        pdf.ln(85)
 
-    # Análisis de IA
     pdf.chapter_title('3. Análisis y Recomendaciones por IA (Gemini)')
     analisis_ia_encoded = datos_reporte['analisis_ia'].encode('latin-1', 'replace').decode('latin-1')
     pdf.chapter_body(analisis_ia_encoded)
 
-    # Información del autor
     pdf.set_y(-40)
     pdf.set_font('Arial', 'I', 9)
     autor_info = ("Software desarrollado por:\n"
@@ -117,24 +122,24 @@ def generar_pdf(datos_reporte, grafico_path):
     return pdf.output(dest='S').encode('latin-1')
 
 def calcular_puntaje_findrisc(edad, imc, cintura, sexo, actividad, frutas_verduras, hipertension, glucosa_alta, familiar_diabetes):
-    score = 0;
-    if 45<=edad<=54: score+=2
-    elif 55<=edad<=64: score+=3
-    elif edad>64: score+=4
-    if 25<=imc<30: score+=1
-    elif imc>=30: score+=3
-    if sexo=="Masculino":
-        if 94<=cintura<=102: score+=3
-        elif cintura>102: score+=4
-    elif sexo=="Femenino":
-        if 80<=cintura<=88: score+=3
-        elif cintura>88: score+=4
-    if actividad=="No": score+=2
-    if frutas_verduras=="No todos los días": score+=1
-    if hipertension=="Sí": score+=2
-    if glucosa_alta=="Sí": score+=5
-    if familiar_diabetes=="Sí: padres, hermanos o hijos": score+=5
-    elif familiar_diabetes=="Sí: abuelos, tíos o primos": score+=3
+    score = 0
+    if 45 <= edad <= 54: score += 2
+    elif 55 <= edad <= 64: score += 3
+    elif edad > 64: score += 4
+    if 25 <= imc < 30: score += 1
+    elif imc >= 30: score += 3
+    if sexo == "Masculino":
+        if 94 <= cintura <= 102: score += 3
+        elif cintura > 102: score += 4
+    elif sexo == "Femenino":
+        if 80 <= cintura <= 88: score += 3
+        elif cintura > 88: score += 4
+    if actividad == "No": score += 2
+    if frutas_verduras == "No todos los días": score += 1
+    if hipertension == "Sí": score += 2
+    if glucosa_alta == "Sí": score += 5
+    if familiar_diabetes == "Sí: padres, hermanos o hijos": score += 5
+    elif familiar_diabetes == "Sí: abuelos, tíos o primos": score += 3
     return score
 
 def obtener_interpretacion_riesgo(score):
@@ -145,8 +150,8 @@ def obtener_interpretacion_riesgo(score):
     else: return "Riesgo muy alto", "1 de cada 2 personas desarrollará diabetes."
 
 def llamar_gemini(prompt):
-    if GEMINI_API_KEY == "TU_API_KEY_DE_GEMINI":
-        return "Error: La clave de API de Gemini no está configurada en los secretos de Streamlit."
+    if not GEMINI_API_KEY:
+        return "Error: La clave de API de Gemini no está configurada. Por favor, añádela a los secretos de Streamlit."
     
     headers = {"Content-Type": "application/json"}
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
@@ -157,31 +162,22 @@ def llamar_gemini(prompt):
         return result['candidates'][0]['content']['parts'][0]['text']
     except requests.exceptions.RequestException as e:
         return f"Error de conexión con la API de Gemini: {e}"
-    except (KeyError, IndexError) as e:
-        return f"Respuesta inesperada de la API de Gemini. Detalles: {response.text}"
+    except (KeyError, IndexError):
+        return f"Respuesta inesperada de la API de Gemini. Revisa tu clave de API."
 
 def obtener_analisis_ia(datos_usuario):
     prompt = f"""
     Eres un asistente de salud virtual especializado en la prevención de la diabetes.
     Un usuario ha completado el cuestionario de riesgo de diabetes FINDRISC y ha obtenido los siguientes resultados:
-    - Edad: {datos_usuario['edad']} años
-    - Sexo: {datos_usuario['sexo']}
-    - IMC: {datos_usuario['imc']:.2f}
-    - Perímetro de cintura: {datos_usuario['cintura']} cm
-    - Realiza 30 min de actividad física diaria: {datos_usuario['actividad']}
-    - Come frutas y verduras todos los días: {datos_usuario['frutas_verduras']}
-    - Toma medicación para la hipertensión: {datos_usuario['hipertension']}
-    - Ha tenido niveles de glucosa altos alguna vez: {datos_usuario['glucosa_alta']}
-    - Tiene familiares con diabetes: {datos_usuario['familiar_diabetes']}
+    - Datos del paciente: {datos_usuario}
     - **Puntaje FINDRISC Total:** {datos_usuario['puntaje']}
     - **Nivel de riesgo:** {datos_usuario['nivel_riesgo']}
 
     Basado en esta información, proporciona un análisis detallado y recomendaciones personalizadas en español.
-    Tu respuesta debe ser empática, clara y motivadora. Estructura tu respuesta de la siguiente manera:
-
-    1.  **Análisis de tu Resultado:** Explica brevemente qué significa el puntaje y el nivel de riesgo en el contexto de los datos proporcionados. Identifica los 2 o 3 factores de riesgo que más contribuyeron a su puntaje.
-    2.  **Recomendaciones Clave:** Ofrece de 3 a 5 recomendaciones prácticas y accionables para reducir su riesgo. Las recomendaciones deben ser específicas para los factores de riesgo identificados (ej. si el IMC es alto, da consejos sobre dieta y ejercicio).
-    3.  **Próximos Pasos:** Aconseja al usuario que consulte a un profesional de la salud para una evaluación completa. Menciona la importancia de no autodiagnosticarse.
+    Estructura tu respuesta de la siguiente manera:
+    1.  **Análisis de tu Resultado:** Explica qué significa el puntaje y el nivel de riesgo. Identifica los 2-3 factores de riesgo que más contribuyeron.
+    2.  **Recomendaciones Clave:** Ofrece de 3 a 5 consejos prácticos y accionables para reducir el riesgo.
+    3.  **Próximos Pasos:** Aconseja consultar a un profesional de la salud.
     """
     return llamar_gemini(prompt)
 
@@ -206,28 +202,28 @@ def cargar_datos_de_firestore(user_id):
 
 def generar_grafico_riesgo(score):
     fig = go.Figure(go.Indicator(
-        mode = "gauge+number",
-        value = score,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "<b>Nivel de Riesgo de Diabetes</b>"},
-        gauge = {
+        mode="gauge+number",
+        value=score,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "<b>Nivel de Riesgo de Diabetes</b>"},
+        gauge={
             'axis': {'range': [0, 25], 'tickwidth': 1, 'tickcolor': "darkblue"},
             'bar': {'color': "rgba(0,0,0,0.4)"},
             'bgcolor': "white",
             'borderwidth': 2,
             'bordercolor': "#cccccc",
             'steps': [
-                {'range': [0, 6], 'color': 'green'},
-                {'range': [7, 11], 'color': 'lightgreen'},
-                {'range': [12, 14], 'color': 'yellow'},
-                {'range': [15, 20], 'color': 'orange'},
-                {'range': [21, 25], 'color': 'red'}],
+                {'range': [0, 6], 'color': '#28a745'},
+                {'range': [7, 11], 'color': '#a3d900'},
+                {'range': [12, 14], 'color': '#ffc107'},
+                {'range': [15, 20], 'color': '#fd7e14'},
+                {'range': [21, 25], 'color': '#dc3545'}],
             'threshold': {
                 'line': {'color': "black", 'width': 4},
                 'thickness': 0.85,
                 'value': score}
         }))
-    fig.update_layout(paper_bgcolor = "rgba(0,0,0,0)", font = {'color': "#333333", 'family': "Arial"})
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={'color': "#333333", 'family': "Arial"})
     return fig
 
 # --- INTERFAZ DE USUARIO ---
@@ -250,7 +246,7 @@ if st.session_state.user is None:
                     user = auth_client.sign_in_with_email_and_password(email, password)
                     st.session_state.user = user
                     st.rerun()
-                except Exception as e:
+                except Exception:
                     st.error("Error: Email o contraseña incorrectos.")
     with register_tab:
         st.subheader("Crear una Cuenta Nueva")
@@ -267,8 +263,8 @@ if st.session_state.user is None:
                         st.success(f"¡Cuenta creada con éxito para {email}!")
                         st.info("Ahora puedes ir a la pestaña 'Iniciar Sesión' para entrar.")
                         st.balloons()
-                    except Exception as e:
-                        st.error(f"Error al crear la cuenta. Es posible que el correo ya esté en uso o la contraseña sea muy débil.")
+                    except Exception:
+                        st.error("Error al crear la cuenta. Es posible que el correo ya esté en uso o la contraseña sea muy débil.")
 else:
     user_email = st.session_state.user.get('email', 'Usuario')
     user_uid = st.session_state.user.get('localId')
@@ -324,7 +320,7 @@ else:
             guardar_datos_en_firestore(user_uid, datos_usuario)
             
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-                grafico.write_image(tmpfile.name, format="png", scale=2)
+                grafico.write_image(tmpfile.name, format="png", scale=2, engine="kaleido")
                 tmpfile_path = tmpfile.name
 
             pdf_bytes = generar_pdf(datos_usuario, tmpfile_path)
