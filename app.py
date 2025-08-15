@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v7.1 (Interfaz Mejorada)
+Software Predictivo de Diabetes con IA v7.2 (Final Estable)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión con una interfaz de usuario completamente rediseñada para ser más
-limpia, moderna y profesional.
-- Navegación principal por pestañas (st.tabs).
-- Barra lateral dedicada a la gestión de sesión del usuario.
-- Estilo visual mejorado con contenedores y CSS personalizado.
+Versión final que corrige el error de inicialización de Firebase Admin
+eliminando la manipulación de la private_key, que ahora se formatea
+correctamente en el archivo de secretos.
 """
 
 import streamlit as st
@@ -27,26 +25,21 @@ import tempfile
 # --- CONFIGURACIÓN DE PÁGINA Y ESTILO ---
 st.set_page_config(page_title="Predictor de Diabetes con IA", layout="wide", initial_sidebar_state="collapsed")
 
-# CSS para un look más profesional
 st.markdown("""
 <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    .st-emotion-cache-1r4qj8v {
-        border-radius: 0.5rem;
-    }
+    .st-emotion-cache-1r4qj8v { border-radius: 0.5rem; }
 </style>
 """, unsafe_allow_html=True)
 
-
 # --- CONFIGURACIÓN DE SERVICIOS ---
 
-# 1. SDK de Administrador
+# 1. SDK de Administrador (VERSIÓN CORREGIDA)
 try:
     if "firebase_credentials" in st.secrets:
+        # Carga las credenciales directamente, sin modificar la clave
         firebase_secrets_dict = dict(st.secrets["firebase_credentials"])
-        # Corrección clave para el formato de la private_key en Streamlit Cloud
-        firebase_secrets_dict["private_key"] = firebase_secrets_dict["private_key"].replace('\\n', '\n')
         if not firebase_admin._apps:
             cred = credentials.Certificate(firebase_secrets_dict)
             firebase_admin.initialize_app(cred)
@@ -55,7 +48,7 @@ try:
         st.error("Error crítico: No se encontraron las credenciales de Firebase Admin en los secretos.")
         st.stop()
 except Exception as e:
-    st.error(f"Error crítico al inicializar Firebase Admin: {e}. Revisa tus secretos.")
+    st.error(f"Error crítico al inicializar Firebase Admin: {e}. Revisa el formato de tus secretos.")
     st.stop()
 
 # 2. SDK de Cliente con Pyrebase
@@ -77,64 +70,40 @@ if not GEMINI_API_KEY:
     st.warning("Clave de API de Gemini no encontrada. Las funciones de IA estarán deshabilitadas.")
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
-
-# --- CLASES Y FUNCIONES ---
+# --- (El resto del código no necesita cambios) ---
 
 class PDF(FPDF):
-    def header(self):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, 'Reporte de Riesgo de Diabetes', 0, 1, 'C')
-        self.ln(10)
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
-
-    def chapter_title(self, title):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, title, 0, 1, 'L')
-        self.ln(4)
-
-    def chapter_body(self, body):
-        self.set_font('Arial', '', 11)
-        self.multi_cell(0, 6, body)
-        self.ln()
+    def header(self): self.set_font('Arial', 'B', 12); self.cell(0, 10, 'Reporte de Riesgo de Diabetes', 0, 1, 'C'); self.ln(10)
+    def footer(self): self.set_y(-15); self.set_font('Arial', 'I', 8); self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
+    def chapter_title(self, title): self.set_font('Arial', 'B', 12); self.cell(0, 10, title, 0, 1, 'L'); self.ln(4)
+    def chapter_body(self, body): self.set_font('Arial', '', 11); self.multi_cell(0, 6, body); self.ln()
 
 def generar_pdf(datos_reporte, grafico_path):
     pdf = PDF()
     pdf.add_page()
-    
-    pdf.chapter_title('1. Datos del Paciente')
-    fecha_reporte = datetime.now().strftime('%d/%m/%Y')
+    pdf.chapter_title('1. Datos del Paciente'); fecha_reporte = datetime.now().strftime('%d/%m/%Y')
     info_paciente = (f"Fecha del reporte: {fecha_reporte}\n"
                      f"Edad: {datos_reporte['edad']} años\n"
                      f"Sexo: {datos_reporte['sexo']}\n"
                      f"IMC (Índice de Masa Corporal): {datos_reporte['imc']:.2f}\n"
                      f"Perímetro de cintura: {datos_reporte['cintura']} cm")
     pdf.chapter_body(info_paciente)
-
     pdf.chapter_title('2. Resultados del Cuestionario FINDRISC')
     resultados = (f"Puntaje Total: {datos_reporte['puntaje']} puntos\n"
                   f"Nivel de Riesgo: {datos_reporte['nivel_riesgo']}\n"
                   f"Estimación a 10 años: {datos_reporte['estimacion']}")
     pdf.chapter_body(resultados)
-    
     if grafico_path and os.path.exists(grafico_path):
         pdf.image(grafico_path, x=pdf.get_x(), y=pdf.get_y(), w=180)
         pdf.ln(85)
-
     pdf.chapter_title('3. Análisis y Recomendaciones por IA (Gemini)')
     analisis_ia_encoded = datos_reporte['analisis_ia'].encode('latin-1', 'replace').decode('latin-1')
     pdf.chapter_body(analisis_ia_encoded)
-
-    pdf.set_y(-40)
-    pdf.set_font('Arial', 'I', 9)
+    pdf.set_y(-40); pdf.set_font('Arial', 'I', 9)
     autor_info = ("Software desarrollado por:\n"
                   "Joseph Javier Sánchez Acuña: Ingeniero Industrial, Desarrollador de Aplicaciones Clínicas, Experto en Inteligencia Artificial.\n"
                   "Contacto: joseph.sanchez@uniminuto.edu.co")
     pdf.multi_cell(0, 5, autor_info, 0, 'C')
-    
     return pdf.output(dest='S').encode('latin-1')
 
 def calcular_puntaje_findrisc(edad, imc, cintura, sexo, actividad, frutas_verduras, hipertension, glucosa_alta, familiar_diabetes):
