@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v7.3 (Final Estable)
+Software Predictivo de Diabetes con IA v7.4 (Final Estable)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión que añade un paso de decodificación explícita de la private_key
-leída desde los secretos de Streamlit para garantizar la correcta
-inicialización de Firebase Admin.
+Versión con una reconstrucción robusta de la clave privada de Firebase
+para solucionar errores persistentes de formato PEM en Streamlit Cloud.
 """
 
 import streamlit as st
@@ -35,29 +34,42 @@ st.markdown("""
 
 # --- CONFIGURACIÓN DE SERVICIOS ---
 
-# 1. SDK de Administrador (VERSIÓN CORREGIDA CON DECODIFICACIÓN)
+# 1. SDK de Administrador (VERSIÓN CON RECONSTRUCCIÓN DE CLAVE)
 try:
-    # Verifica si la app de Firebase Admin ya ha sido inicializada
     if not firebase_admin._apps:
-        # Carga las credenciales desde los secretos de Streamlit
         firebase_secrets_dict = dict(st.secrets["firebase_credentials"])
         
-        # **CAMBIO CLAVE**: Reemplaza los caracteres de escape '\\n' por saltos de línea reales '\n'
-        # Esto asegura que la clave privada tenga el formato PEM correcto de varias líneas.
-        firebase_secrets_dict["private_key"] = firebase_secrets_dict["private_key"].replace('\\n', '\n')
+        # --- INICIO DE LA CORRECCIÓN ROBUSTA ---
+        # 1. Obtener la clave privada tal como viene de los secretos.
+        raw_private_key = firebase_secrets_dict["private_key"]
         
-        # Inicializa la app de Firebase con las credenciales corregidas
+        # 2. Limpiar la clave: quitar encabezados, pies de página y CUALQUIER salto de línea o espacio.
+        # Esto nos deja únicamente con el contenido Base64 puro.
+        cleaned_key = raw_private_key.replace("-----BEGIN PRIVATE KEY-----", "")
+        cleaned_key = cleaned_key.replace("-----END PRIVATE KEY-----", "")
+        cleaned_key = cleaned_key.replace("\\n", "").replace("\n", "").strip()
+        
+        # 3. Reconstruir la clave en el formato PEM exacto que la librería necesita.
+        rebuilt_private_key = (
+            "-----BEGIN PRIVATE KEY-----\n"
+            + cleaned_key
+            + "\n-----END PRIVATE KEY-----\n"
+        )
+        
+        # 4. Actualizar el diccionario de credenciales con la clave perfectamente formateada.
+        firebase_secrets_dict["private_key"] = rebuilt_private_key
+        # --- FIN DE LA CORRECCIÓN ROBUSTA ---
+        
+        # Inicializar la app de Firebase con las credenciales corregidas
         cred = credentials.Certificate(firebase_secrets_dict)
         firebase_admin.initialize_app(cred)
     
-    # Obtiene el cliente de Firestore
     db = firestore.client()
 
 except Exception as e:
     st.error(f"Error crítico al inicializar Firebase Admin: {e}. Revisa el formato de tus secretos y el código de inicialización.")
-    # Muestra los primeros caracteres de la clave para depuración (sin exponerla completa)
     if "firebase_credentials" in st.secrets:
-        st.code(f"Clave privada comienza con: {st.secrets['firebase_credentials']['private_key'][:30]}...")
+        st.code(f"Clave privada (primeros 30 chars): {st.secrets['firebase_credentials']['private_key'][:30]}...")
     st.stop()
 
 
