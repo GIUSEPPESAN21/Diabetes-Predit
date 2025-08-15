@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v6.0 (Firebase Auth)
+Software Predictivo de Diabetes con IA v6.1 (Pyrebase Auth)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión final que utiliza Firebase Authentication como único sistema para
-el registro y login de usuarios, eliminando la dependencia del archivo config.yaml
-y la librería streamlit-authenticator para una solución robusta y estándar.
+Versión final que utiliza Pyrebase para la autenticación del cliente,
+solucionando los problemas de registro de nuevos usuarios de forma definitiva.
+Este es el método estándar y más seguro para manejar usuarios en Streamlit.
 """
 
 import streamlit as st
 import firebase_admin
-from firebase_admin import credentials, firestore, auth
+from firebase_admin import credentials, firestore
+import pyrebase # Librería para la autenticación del cliente
 from fpdf import FPDF
 from datetime import datetime
 import requests
@@ -20,7 +21,7 @@ import json
 
 # --- CONFIGURACIÓN DE SERVICIOS ---
 
-# Configuración de Firebase desde los secretos de Streamlit
+# 1. SDK de Administrador (para acceder a la base de datos)
 try:
     firebase_secrets_dict = dict(st.secrets["firebase_credentials"])
     firebase_secrets_dict["private_key"] = firebase_secrets_dict["private_key"].replace('\\n', '\n')
@@ -29,8 +30,18 @@ try:
         firebase_admin.initialize_app(cred)
     db = firestore.client()
 except Exception as e:
-    st.error(f"Error crítico al inicializar Firebase: {e}. Revisa tus secretos.")
+    st.error(f"Error crítico al inicializar Firebase Admin: {e}. Revisa tus secretos.")
     st.stop()
+
+# 2. SDK de Cliente con Pyrebase (para registrar y loguear usuarios)
+try:
+    firebase_client_config = dict(st.secrets["firebase_client_config"])
+    firebase = pyrebase.initialize_app(firebase_client_config)
+    auth_client = firebase.auth()
+except Exception as e:
+    st.error(f"Error crítico al inicializar la autenticación de Firebase: {e}. Revisa la sección [firebase_client_config] en tus secretos.")
+    st.stop()
+
 
 # --- CLASES Y FUNCIONES ---
 GEMINI_API_KEY = "TU_API_KEY_DE_GEMINI"
@@ -131,20 +142,11 @@ if st.session_state.user is None:
 
             if login_button:
                 try:
-                    # NOTA IMPORTANTE DE SEGURIDAD:
-                    # El SDK de Admin (Python) NO puede verificar contraseñas directamente.
-                    # Este método solo comprueba si el usuario existe.
-                    # Para una app de producción, se debe usar el SDK de cliente (JS)
-                    # para un login 100% seguro. Este es un workaround para Streamlit.
-                    user = auth.get_user_by_email(email)
-                    st.session_state.user = {
-                        "uid": user.uid,
-                        "email": user.email,
-                        "name": user.display_name or user.email
-                    }
+                    user = auth_client.sign_in_with_email_and_password(email, password)
+                    st.session_state.user = user # Guarda toda la info del usuario
                     st.rerun()
                 except Exception as e:
-                    st.error("Error: Usuario no encontrado o credenciales incorrectas.")
+                    st.error("Error: Email o contraseña incorrectos.")
 
     with register_tab:
         st.subheader("Crear una Cuenta Nueva")
@@ -159,20 +161,25 @@ if st.session_state.user is None:
                     st.warning("Por favor, completa todos los campos.")
                 else:
                     try:
-                        new_user = auth.create_user(
-                            email=email,
-                            password=password,
-                            display_name=name
-                        )
-                        st.success(f"¡Cuenta creada con éxito para {new_user.display_name}!")
+                        # Crear el usuario en Firebase Authentication
+                        user = auth_client.create_user_with_email_and_password(email, password)
+                        
+                        # (Opcional) Enviar email de verificación
+                        # auth_client.send_email_verification(user['idToken'])
+                        
+                        st.success(f"¡Cuenta creada con éxito para {email}!")
                         st.info("Ahora puedes ir a la pestaña 'Iniciar Sesión' para entrar.")
                         st.balloons()
                     except Exception as e:
-                        st.error(f"Error al crear la cuenta: {e}")
+                        st.error(f"Error al crear la cuenta. Es posible que el correo ya esté en uso o la contraseña sea muy débil.")
 
 # --- APLICACIÓN PRINCIPAL (SI EL USUARIO ESTÁ LOGUEADO) ---
 else:
-    st.sidebar.title(f"Bienvenido, *{st.session_state.user['name']}*")
+    # Extraer el email del usuario para mostrarlo
+    user_email = st.session_state.user.get('email', 'Usuario')
+    user_uid = st.session_state.user.get('localId') # Este es el UID del usuario
+
+    st.sidebar.title(f"Bienvenido, *{user_email}*")
     
     if st.sidebar.button("Cerrar Sesión"):
         st.session_state.user = None
@@ -209,12 +216,12 @@ else:
                 analisis_ia = obtener_analisis_ia(datos_usuario, puntaje, nivel_riesgo, estimacion)
                 datos_usuario["analisis_ia"] = analisis_ia
             st.subheader("Resultados de tu Evaluación"); st.metric("Puntaje FINDRISC", f"{puntaje} puntos", f"{nivel_riesgo}"); st.info(f"**Estimación a 10 años:** {estimacion}"); st.markdown("---"); st.subheader("🧠 Análisis y Recomendaciones por IA"); st.markdown(analisis_ia)
-            guardar_datos_en_firestore(st.session_state.user['uid'], datos_usuario)
+            guardar_datos_en_firestore(user_uid, datos_usuario)
             pdf_bytes = generar_pdf(datos_usuario)
             st.download_button(label="📥 Descargar Reporte en PDF", data=pdf_bytes, file_name=f"Reporte_Diabetes_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/octet-stream")
     elif opcion == "Consultar historial":
         st.title("📖 Tu Historial de Resultados")
-        historial = cargar_datos_de_firestore(st.session_state.user['uid'])
+        historial = cargar_datos_de_firestore(user_uid)
         if historial:
             st.success(f"Se encontraron {len(historial)} registros.")
             for test in historial:
