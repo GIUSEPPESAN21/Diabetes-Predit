@@ -1,29 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v3.0
+Software Predictivo de Diabetes con IA v4.0
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Esta versión integra el inicio de sesión con Google (OAuth2) para una mejor
-experiencia de usuario, además de las funcionalidades de la v2.0.
+Esta versión implementa un sistema de autenticación robusto y seguro utilizando
+la librería streamlit-authenticator. Se elimina la dependencia anterior que causaba
+errores de instalación.
 
-Instrucciones para ejecutar:
-1.  Asegúrate de tener Python instalado.
-2.  Instala las bibliotecas necesarias (ver requirements.txt):
-    pip install streamlit firebase-admin requests fpdf streamlit-social-media-auth
+Instrucciones:
+1.  Asegúrate de que tu archivo 'requirements.txt' contiene 'streamlit-authenticator'.
+2.  Configura tus credenciales de Firebase en los secretos de Streamlit como [firebase_credentials].
+3.  Configura las credenciales del autenticador en los secretos como [authenticator].
 
-3.  Configura Firebase y Google Cloud:
-    - Sigue los pasos anteriores para obtener tu 'firebase_credentials.json'.
-    - Habilita "Correo/Contraseña" y "Google" como proveedores en Firebase Authentication.
-    - Obtén tu ID de Cliente y Secreto de Cliente de OAuth2 desde la Consola de Google Cloud.
-    - Añade estas nuevas credenciales a tus secretos de Streamlit (secrets.toml).
-
-4.  Configura la API de Gemini:
-    - Reemplaza el valor de la variable `GEMINI_API_KEY` con tu clave.
-
-5.  Ejecuta la aplicación desde tu terminal:
-    streamlit run nombre_de_este_archivo.py
 """
 
 import streamlit as st
@@ -33,74 +23,49 @@ import requests
 import json
 from datetime import datetime
 from fpdf import FPDF
-from streamlit_social_media_auth import OAuth2Provider
+import streamlit_authenticator as stauth
+import yaml
 
 # --- CONFIGURACIÓN DE SERVICIOS ---
-
-# Configuración de la API de Gemini
-GEMINI_API_KEY = "TU_API_KEY_DE_GEMINI"
-GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
 
 # Configuración de Firebase
 try:
     if not firebase_admin._apps:
-        # Usa st.secrets para mayor seguridad, especialmente en despliegues.
-        # El archivo secrets.toml debe contener las credenciales de firebase.
-        firebase_creds_dict = st.secrets["firebase_credentials"]
-        cred = credentials.Certificate(firebase_creds_dict)
+        cred = credentials.Certificate(st.secrets["firebase_credentials"])
         firebase_admin.initialize_app(cred)
     db = firestore.client()
 except Exception as e:
-    st.error(f"Error crítico al inicializar Firebase: {e}")
+    st.error(f"Error crítico al inicializar Firebase: {e}. Revisa tus secretos.")
     st.stop()
 
-# Configuración del proveedor de OAuth2 para Google
-# DEBES AÑADIR ESTO A TU ARCHIVO secrets.toml
+# Configuración del Autenticador
+# Los datos de los usuarios ahora se gestionan a través del autenticador
+# y se pueden almacenar en un archivo YAML o en una base de datos.
+# Por seguridad, cargamos la configuración desde los secretos de Streamlit.
 try:
-    GOOGLE_CLIENT_ID = st.secrets["google_oauth"]["client_id"]
-    GOOGLE_CLIENT_SECRET = st.secrets["google_oauth"]["client_secret"]
-    REDIRECT_URI = st.secrets["google_oauth"]["redirect_uri"]
-    GoogleAuthProvider = OAuth2Provider(
-        client_id=GOOGLE_CLIENT_ID,
-        client_secret=GOOGLE_CLIENT_SECRET,
-        redirect_uri=REDIRECT_URI,
-        authorize_url="https://accounts.google.com/o/oauth2/v2/auth",
-        token_url="https://oauth2.googleapis.com/token",
-        user_info_url="https://www.googleapis.com/oauth2/v1/userinfo",
-        scope="openid profile email",
-        authorize_params={"access_type": "offline", "prompt": "consent"},
-        token_params={"grant_type": "authorization_code"},
-        user_info_parser=lambda d: d
+    authenticator_config = st.secrets["authenticator"]
+    authenticator = stauth.Authenticate(
+        authenticator_config["credentials"],
+        authenticator_config["cookie"]["name"],
+        authenticator_config["cookie"]["key"],
+        authenticator_config["cookie"]["expiry_days"],
+        authenticator_config["preauthorized"]
     )
-except KeyError:
-    st.error("Credenciales de Google OAuth no configuradas en los secretos de Streamlit.")
-    GoogleAuthProvider = None
+except Exception as e:
+    st.error(f"Error al configurar el autenticador: {e}. Revisa la sección 'authenticator' en tus secretos.")
+    st.stop()
 
-
-# --- CLASE PARA GENERAR PDF (sin cambios) ---
+# --- CLASES Y FUNCIONES (sin cambios) ---
 class PDF(FPDF):
-    def header(self):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, 'Reporte de Riesgo de Diabetes', 0, 1, 'C')
-        self.ln(10)
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
-    def chapter_title(self, title):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, title, 0, 1, 'L')
-        self.ln(4)
-    def chapter_body(self, body):
-        self.set_font('Arial', '', 12)
-        self.multi_cell(0, 10, body)
-        self.ln()
+    def header(self): self.set_font('Arial', 'B', 12); self.cell(0, 10, 'Reporte de Riesgo de Diabetes', 0, 1, 'C'); self.ln(10)
+    def footer(self): self.set_y(-15); self.set_font('Arial', 'I', 8); self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
+    def chapter_title(self, title): self.set_font('Arial', 'B', 12); self.cell(0, 10, title, 0, 1, 'L'); self.ln(4)
+    def chapter_body(self, body): self.set_font('Arial', '', 12); self.multi_cell(0, 10, body); self.ln()
 
 def generar_pdf(datos_reporte):
     pdf = PDF()
     pdf.add_page()
-    pdf.chapter_title('Datos del Paciente')
-    fecha_reporte = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+    pdf.chapter_title('Datos del Paciente'); fecha_reporte = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
     info_paciente = (f"Fecha: {fecha_reporte}\nEdad: {datos_reporte['edad']} años\n"
                      f"Sexo: {datos_reporte['sexo']}\nIMC: {datos_reporte['imc']:.2f}\n"
                      f"Cintura: {datos_reporte['cintura']} cm")
@@ -112,14 +77,12 @@ def generar_pdf(datos_reporte):
     pdf.chapter_title('Análisis y Recomendaciones por IA')
     analisis_ia_encoded = datos_reporte['analisis_ia'].encode('latin-1', 'replace').decode('latin-1')
     pdf.chapter_body(analisis_ia_encoded)
-    pdf.set_y(-40)
-    pdf.set_font('Arial', 'I', 9)
+    pdf.set_y(-40); pdf.set_font('Arial', 'I', 9)
     autor_info = ("Software por: Joseph Javier Sánchez Acuña\n"
                   "Contacto: joseph.sanchez@uniminuto.edu.co")
     pdf.multi_cell(0, 5, autor_info, 0, 'C')
     return pdf.output(dest='S').encode('latin-1')
 
-# --- FUNCIONES DE LA APP (sin cambios) ---
 def calcular_puntaje_findrisc(edad, imc, cintura, sexo, actividad, frutas_verduras, hipertension, glucosa_alta, familiar_diabetes):
     score = 0;
     if 45<=edad<=54: score+=2
@@ -146,88 +109,48 @@ def obtener_interpretacion_riesgo(score):
     elif 12 <= score <= 14: return "Riesgo moderado", "1 de cada 6."
     elif 15 <= score <= 20: return "Riesgo alto", "1 de cada 3."
     else: return "Riesgo muy alto", "1 de cada 2."
-def obtener_analisis_ia(datos_usuario, puntaje, nivel_riesgo, estimacion):
-    # ... (sin cambios)
-    return "Análisis de IA (función sin cambios)"
-def guardar_datos_en_firestore(user_id, datos):
-    # ... (sin cambios)
-    pass
-def cargar_datos_de_firestore(user_id):
-    # ... (sin cambios)
-    return []
+def obtener_analisis_ia(datos_usuario, puntaje, nivel_riesgo, estimacion): return "Análisis de IA (función sin cambios)"
+def guardar_datos_en_firestore(user_id, datos): pass
+def cargar_datos_de_firestore(user_id): return []
 
-# --- INTERFAZ DE USUARIO ---
+# --- INTERFAZ DE USUARIO CON NUEVO AUTENTICADOR ---
 st.set_page_config(page_title="Predictor de Diabetes con IA", layout="wide")
 
-if 'logged_in' not in st.session_state: st.session_state.logged_in = False
-if 'user_info' not in st.session_state: st.session_state.user_info = None
+# Renderiza el widget de login
+authenticator.login()
 
-# --- PANTALLAS DE LOGIN Y REGISTRO (ACTUALIZADO) ---
-if not st.session_state.logged_in:
-    st.title("Bienvenido al Software Predictivo de Diabetes")
-    
-    # Botón de inicio de sesión con Google
-    if GoogleAuthProvider:
-        user_info = GoogleAuthProvider.login()
-        if user_info:
-            email = user_info.get('email')
-            name = user_info.get('name')
-            try:
-                # Revisa si el usuario ya existe en Firebase
-                user = auth.get_user_by_email(email)
-            except auth.UserNotFoundError:
-                # Si no existe, lo crea
-                user = auth.create_user(email=email, display_name=name)
-            
-            st.session_state.logged_in = True
-            st.session_state.user_info = {'uid': user.uid, 'email': user.email, 'name': user.display_name}
-            st.rerun()
-
-    st.markdown("---")
-    # Pestañas para Correo/Contraseña
-    email_login, email_register = st.tabs(["Iniciar Sesión con Correo", "Registrarse con Correo"])
-    with email_login:
-        with st.form("login_form"):
-            email = st.text_input("Correo Electrónico")
-            password = st.text_input("Contraseña", type="password")
-            if st.form_submit_button("Iniciar Sesión"):
-                try:
-                    user = auth.get_user_by_email(email)
-                    # La verificación de contraseña real requiere el SDK del cliente.
-                    st.session_state.logged_in = True
-                    st.session_state.user_info = {'uid': user.uid, 'email': user.email, 'name': user.display_name or user.email}
-                    st.rerun()
-                except Exception as e:
-                    st.error("Error: Email o contraseña incorrectos.")
-    with email_register:
-        with st.form("register_form"):
-            email = st.text_input("Correo Electrónico para registrar")
-            password = st.text_input("Contraseña para registrar", type="password")
-            if st.form_submit_button("Registrarse"):
-                try:
-                    user = auth.create_user(email=email, password=password)
-                    st.success("¡Cuenta creada! Ahora inicia sesión.")
-                except Exception as e:
-                    st.error(f"Error al registrar: {e}")
-else:
+if st.session_state["authentication_status"]:
     # --- APLICACIÓN PRINCIPAL (SI EL USUARIO ESTÁ LOGUEADO) ---
-    st.sidebar.title("Navegación")
-    st.sidebar.write(f"Bienvenido, **{st.session_state.user_info.get('name', 'Usuario')}**")
+    st.sidebar.title(f"Bienvenido, *{st.session_state['name']}*")
+    authenticator.logout("Cerrar Sesión", "sidebar")
     
     opcion = st.sidebar.radio("Selecciona una opción", ["Realizar nuevo test", "Consultar historial", "Chatbot de Diabetes"])
     
-    if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.logged_in = False
-        st.session_state.user_info = None
-        st.rerun()
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Autor")
+    st.sidebar.info("Joseph Javier Sánchez Acuña\n\n*Ingeniero Industrial, Desarrollador de Aplicaciones Clínicas, Experto en Inteligencia Artificial.*\n\n**Contacto:** joseph.sanchez@uniminuto.edu.co")
 
-    # ... (El resto de las páginas de la app no tienen cambios)
+    # Páginas de la aplicación
     if opcion == "Realizar nuevo test":
         st.title("🩺 Software Predictivo de Diabetes con IA")
-        # ... (código del formulario)
+        # ... (código del formulario sin cambios)
     elif opcion == "Consultar historial":
         st.title("📖 Tu Historial de Resultados")
-        # ... (código del historial)
+        # ... (código del historial sin cambios)
     elif opcion == "Chatbot de Diabetes":
         st.title("🤖 Chatbot Informativo sobre Diabetes")
-        # ... (código del chatbot)
+        # ... (código del chatbot sin cambios)
+
+elif st.session_state["authentication_status"] is False:
+    st.error('Usuario/contraseña incorrectos')
+elif st.session_state["authentication_status"] is None:
+    st.warning('Por favor, introduce tu usuario y contraseña')
+
+    # Opcional: Habilitar el registro de nuevos usuarios
+    try:
+        if authenticator.register_user('Registrar nuevo usuario', preauthorization=False):
+            st.success('¡Usuario registrado con éxito! Por favor, inicia sesión.')
+            # Aquí podrías añadir la lógica para guardar la nueva configuración de usuarios
+            # de forma persistente si no usas un archivo YAML estático.
+    except Exception as e:
+        st.error(e)
