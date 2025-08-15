@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v5.1 (Final)
+Software Predictivo de Diabetes con IA v5.2 (Final)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión final que corrige el error de deprecación del parámetro 'preauthorized'
-en la librería streamlit-authenticator.
+Versión final que corrige el error de deprecación eliminando el parámetro
+obsoleto de la inicialización de la clase Authenticate.
 """
 
 import streamlit as st
@@ -42,14 +42,13 @@ except Exception as e:
     st.error(f"Error crítico al inicializar Firebase: {e}. Revisa tus secretos.")
     st.stop()
 
-# Creación de la instancia del autenticador (VERSIÓN CORREGIDA)
+# Creación de la instancia del autenticador (VERSIÓN CORREGIDA FINAL)
+# Se elimina el parámetro 'preauthorization' obsoleto de la inicialización.
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
     config['cookie']['key'],
-    config['cookie']['expiry_days'],
-    # Se utiliza el nuevo nombre del parámetro 'preauthorization'
-    config['preauthorization']
+    config['cookie']['expiry_days']
 )
 
 # --- CLASES Y FUNCIONES ---
@@ -200,10 +199,12 @@ elif st.session_state["authentication_status"] is False:
 elif st.session_state["authentication_status"] is None:
     st.warning('Por favor, introduce tu usuario y contraseña')
     try:
-        if authenticator.register_user('Registrar nuevo usuario', preauthorization=False):
+        # La lógica de pre-autorización ahora se maneja aquí
+        if authenticator.register_user('Registrar nuevo usuario', preauthorization=True):
             st.success('¡Usuario registrado con éxito! Por favor, inicia sesión.')
+            # Actualiza el archivo config.yaml en tu repositorio para guardar el nuevo usuario
             with open('config.yaml', 'w') as file:
                 yaml.dump(config, file, default_flow_style=False)
-            st.info("Para activar tu cuenta, el administrador debe actualizar el archivo de configuración.")
+            st.info("El nuevo usuario ha sido guardado en la configuración.")
     except Exception as e:
         st.error(e)
