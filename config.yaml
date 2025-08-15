@@ -1,19 +1,18 @@
 credentials:
   usernames:
-    # Usuario de ejemplo 1. Contraseña: 123
     jsmith:
       email: jsmith@gmail.com
       name: John Smith
       password: '$2b$12$Eix1ep3lYI8d.X.zzq2a5O4.gLw1y2i2m3gLzdf.eSEi2L.a.dY/e'
-    # Usuario de ejemplo 2. Contraseña: 123
     rdoe:
       email: rdoe@gmail.com
       name: Rebecca Doe
       password: '$2b$12$Eix1ep3lYI8d.X.zzq2a5O4.gLw1y2i2m3gLzdf.eSEi2L.a.dY/e'
 cookie:
   expiry_days: 30
-  key: 'random_signature_key' # Cambia esto por cualquier frase secreta
+  key: 'random_signature_key'
   name: 'random_cookie_name'
-preauthorized:
+# El nombre del parámetro ha sido corregido aquí:
+preauthorization:
   emails:
   - melsby@gmail.com
