@@ -118,7 +118,6 @@ if 'user' not in st.session_state:
 
 # --- PANTALLA DE LOGIN Y REGISTRO ---
 if st.session_state.user is None:
-    # Título mejorado
     st.title("🩺 Predictor de Diabetes con IA")
     
     login_tab, register_tab = st.tabs(["Iniciar Sesión", "Registrar Nuevo Usuario"])
