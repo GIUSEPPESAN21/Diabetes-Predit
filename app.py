@@ -45,6 +45,7 @@ st.markdown("""
 try:
     if "firebase_credentials" in st.secrets:
         firebase_secrets_dict = dict(st.secrets["firebase_credentials"])
+        # Corrección clave para el formato de la private_key en Streamlit Cloud
         firebase_secrets_dict["private_key"] = firebase_secrets_dict["private_key"].replace('\\n', '\n')
         if not firebase_admin._apps:
             cred = credentials.Certificate(firebase_secrets_dict)
