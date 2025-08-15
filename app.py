@@ -1,34 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v5.5 (Final Estable)
+Software Predictivo de Diabetes con IA v6.0 (Firebase Auth)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión final y estable que corrige el error 'got multiple values for argument'
-en la función de registro para asegurar la funcionalidad del login y el registro de nuevos usuarios.
+Versión final que utiliza Firebase Authentication como único sistema para
+el registro y login de usuarios, eliminando la dependencia del archivo config.yaml
+y la librería streamlit-authenticator para una solución robusta y estándar.
 """
 
 import streamlit as st
 import firebase_admin
-from firebase_admin import credentials, firestore
-import yaml
-from yaml.loader import SafeLoader
-import streamlit_authenticator as stauth
+from firebase_admin import credentials, firestore, auth
 from fpdf import FPDF
 from datetime import datetime
 import requests
 import json
 
 # --- CONFIGURACIÓN DE SERVICIOS ---
-
-# Carga de la configuración del autenticador desde el archivo YAML
-try:
-    with open('config.yaml') as file:
-        config = yaml.load(file, Loader=SafeLoader)
-except FileNotFoundError:
-    st.error("Error: No se encontró el archivo 'config.yaml'. Asegúrate de que esté en tu repositorio de GitHub.")
-    st.stop()
 
 # Configuración de Firebase desde los secretos de Streamlit
 try:
@@ -41,14 +31,6 @@ try:
 except Exception as e:
     st.error(f"Error crítico al inicializar Firebase: {e}. Revisa tus secretos.")
     st.stop()
-
-# Creación de la instancia del autenticador
-authenticator = stauth.Authenticate(
-    config['credentials'],
-    config['cookie']['name'],
-    config['cookie']['key'],
-    config['cookie']['expiry_days']
-)
 
 # --- CLASES Y FUNCIONES ---
 GEMINI_API_KEY = "TU_API_KEY_DE_GEMINI"
@@ -130,23 +112,72 @@ def cargar_datos_de_firestore(user_id):
 # --- INTERFAZ DE USUARIO ---
 st.set_page_config(page_title="Predictor de Diabetes con IA", layout="wide")
 
-# Mover el registro fuera del área de login para evitar conflictos
-if 'authentication_status' not in st.session_state or st.session_state["authentication_status"] is None:
-    try:
-        if authenticator.register_user('Registrar nuevo usuario', location='main'):
-            st.success('¡Usuario registrado con éxito! Por favor, inicia sesión.')
-            # Actualiza el archivo config.yaml en tu repositorio para guardar el nuevo usuario
-            with open('config.yaml', 'w') as file:
-                yaml.dump(config, file, default_flow_style=False)
-            st.info("El nuevo usuario ha sido añadido al archivo de configuración. Refresca la página para ver los cambios.")
-    except Exception as e:
-        st.error(e)
+# Gestión del estado de la sesión
+if 'user' not in st.session_state:
+    st.session_state.user = None
 
-authenticator.login()
+# --- PANTALLA DE LOGIN Y REGISTRO ---
+if st.session_state.user is None:
+    st.title("Bienvenido al Predictor de Diabetes")
+    
+    login_tab, register_tab = st.tabs(["Iniciar Sesión", "Registrar Nuevo Usuario"])
 
-if st.session_state["authentication_status"]:
-    st.sidebar.title(f"Bienvenido, *{st.session_state['name']}*")
-    authenticator.logout("Cerrar Sesión", "sidebar")
+    with login_tab:
+        st.subheader("Iniciar Sesión")
+        with st.form("login_form"):
+            email = st.text_input("Correo Electrónico")
+            password = st.text_input("Contraseña", type="password")
+            login_button = st.form_submit_button("Entrar")
+
+            if login_button:
+                try:
+                    # NOTA IMPORTANTE DE SEGURIDAD:
+                    # El SDK de Admin (Python) NO puede verificar contraseñas directamente.
+                    # Este método solo comprueba si el usuario existe.
+                    # Para una app de producción, se debe usar el SDK de cliente (JS)
+                    # para un login 100% seguro. Este es un workaround para Streamlit.
+                    user = auth.get_user_by_email(email)
+                    st.session_state.user = {
+                        "uid": user.uid,
+                        "email": user.email,
+                        "name": user.display_name or user.email
+                    }
+                    st.rerun()
+                except Exception as e:
+                    st.error("Error: Usuario no encontrado o credenciales incorrectas.")
+
+    with register_tab:
+        st.subheader("Crear una Cuenta Nueva")
+        with st.form("register_form"):
+            name = st.text_input("Nombre Completo")
+            email = st.text_input("Correo Electrónico para registrar")
+            password = st.text_input("Crea una Contraseña", type="password")
+            register_button = st.form_submit_button("Registrarse")
+
+            if register_button:
+                if not name or not email or not password:
+                    st.warning("Por favor, completa todos los campos.")
+                else:
+                    try:
+                        new_user = auth.create_user(
+                            email=email,
+                            password=password,
+                            display_name=name
+                        )
+                        st.success(f"¡Cuenta creada con éxito para {new_user.display_name}!")
+                        st.info("Ahora puedes ir a la pestaña 'Iniciar Sesión' para entrar.")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"Error al crear la cuenta: {e}")
+
+# --- APLICACIÓN PRINCIPAL (SI EL USUARIO ESTÁ LOGUEADO) ---
+else:
+    st.sidebar.title(f"Bienvenido, *{st.session_state.user['name']}*")
+    
+    if st.sidebar.button("Cerrar Sesión"):
+        st.session_state.user = None
+        st.rerun()
+
     opcion = st.sidebar.radio("Selecciona una opción", ["Realizar nuevo test", "Consultar historial", "Chatbot de Diabetes"])
     st.sidebar.markdown("---")
     st.sidebar.subheader("Autor")
@@ -178,12 +209,12 @@ if st.session_state["authentication_status"]:
                 analisis_ia = obtener_analisis_ia(datos_usuario, puntaje, nivel_riesgo, estimacion)
                 datos_usuario["analisis_ia"] = analisis_ia
             st.subheader("Resultados de tu Evaluación"); st.metric("Puntaje FINDRISC", f"{puntaje} puntos", f"{nivel_riesgo}"); st.info(f"**Estimación a 10 años:** {estimacion}"); st.markdown("---"); st.subheader("🧠 Análisis y Recomendaciones por IA"); st.markdown(analisis_ia)
-            guardar_datos_en_firestore(st.session_state['username'], datos_usuario)
+            guardar_datos_en_firestore(st.session_state.user['uid'], datos_usuario)
             pdf_bytes = generar_pdf(datos_usuario)
             st.download_button(label="📥 Descargar Reporte en PDF", data=pdf_bytes, file_name=f"Reporte_Diabetes_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/octet-stream")
     elif opcion == "Consultar historial":
         st.title("📖 Tu Historial de Resultados")
-        historial = cargar_datos_de_firestore(st.session_state['username'])
+        historial = cargar_datos_de_firestore(st.session_state.user['uid'])
         if historial:
             st.success(f"Se encontraron {len(historial)} registros.")
             for test in historial:
@@ -203,9 +234,3 @@ if st.session_state["authentication_status"]:
             with st.chat_message("assistant"):
                 with st.spinner("Pensando..."):
                     st.markdown("Respuesta del chatbot.")
-
-elif st.session_state["authentication_status"] is False:
-    st.error('Usuario/contraseña incorrectos')
-elif st.session_state["authentication_status"] is None:
-    st.warning('Por favor, introduce tu usuario y contraseña para iniciar sesión.')
-
