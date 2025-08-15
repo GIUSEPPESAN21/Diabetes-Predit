@@ -5,3 +5,4 @@ fpdf
 Pyrebase4
 plotly
 setuptools
+kaleido
