@@ -164,9 +164,6 @@ if st.session_state.user is None:
                         # Crear el usuario en Firebase Authentication
                         user = auth_client.create_user_with_email_and_password(email, password)
                         
-                        # (Opcional) Enviar email de verificación
-                        # auth_client.send_email_verification(user['idToken'])
-                        
                         st.success(f"¡Cuenta creada con éxito para {email}!")
                         st.info("Ahora puedes ir a la pestaña 'Iniciar Sesión' para entrar.")
                         st.balloons()
