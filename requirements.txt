@@ -2,5 +2,4 @@ streamlit
 firebase-admin
 requests
 fpdf
-streamlit-authenticator
 Pyrebase4
