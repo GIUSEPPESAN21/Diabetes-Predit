@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v5.2 (Final)
+Software Predictivo de Diabetes con IA v5.3 (Final)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión final que corrige el error de deprecación eliminando el parámetro
-obsoleto de la inicialización de la clase Authenticate.
+Versión final que corrige el error 'unexpected keyword argument' en la función
+register_user, alineando el código con la última versión de la librería
+streamlit-authenticator.
 """
 
 import streamlit as st
@@ -42,8 +43,7 @@ except Exception as e:
     st.error(f"Error crítico al inicializar Firebase: {e}. Revisa tus secretos.")
     st.stop()
 
-# Creación de la instancia del autenticador (VERSIÓN CORREGIDA FINAL)
-# Se elimina el parámetro 'preauthorization' obsoleto de la inicialización.
+# Creación de la instancia del autenticador
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
@@ -52,7 +52,6 @@ authenticator = stauth.Authenticate(
 )
 
 # --- CLASES Y FUNCIONES ---
-# (El resto de las funciones no necesitan cambios)
 GEMINI_API_KEY = "TU_API_KEY_DE_GEMINI"
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
 
@@ -199,8 +198,8 @@ elif st.session_state["authentication_status"] is False:
 elif st.session_state["authentication_status"] is None:
     st.warning('Por favor, introduce tu usuario y contraseña')
     try:
-        # La lógica de pre-autorización ahora se maneja aquí
-        if authenticator.register_user('Registrar nuevo usuario', preauthorization=True):
+        # La función de registro ahora es más simple
+        if authenticator.register_user('Registrar nuevo usuario'):
             st.success('¡Usuario registrado con éxito! Por favor, inicia sesión.')
             # Actualiza el archivo config.yaml en tu repositorio para guardar el nuevo usuario
             with open('config.yaml', 'w') as file:
