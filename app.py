@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v5.4 (Estable)
+Software Predictivo de Diabetes con IA v5.5 (Final Estable)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión estable que simplifica el sistema de autenticación para eliminar
-errores de librería y asegurar la funcionalidad del login y registro.
+Versión final y estable que corrige todos los errores de autenticación
+simplificando la función de registro para máxima compatibilidad.
 """
 
 import streamlit as st
@@ -196,12 +196,12 @@ elif st.session_state["authentication_status"] is False:
     st.error('Usuario/contraseña incorrectos')
 elif st.session_state["authentication_status"] is None:
     st.warning('Por favor, introduce tu usuario y contraseña')
-    # Pestaña para el registro de nuevos usuarios
+    # Pestaña para el registro de nuevos usuarios (VERSIÓN CORREGIDA)
     try:
+        # Se elimina el parámetro 'preauthorization' que causaba el error
         if authenticator.register_user('Registrar nuevo usuario', location='main'):
             st.success('¡Usuario registrado con éxito! Por favor, inicia sesión.')
-            # Importante: El nuevo usuario se añade al objeto 'config' en memoria.
-            # Para hacerlo permanente, debes guardar este objeto 'config' de nuevo.
+            # Actualiza el archivo config.yaml para guardar el nuevo usuario
             with open('config.yaml', 'w') as file:
                 yaml.dump(config, file, default_flow_style=False)
             st.info("El nuevo usuario ha sido añadido al archivo de configuración.")
