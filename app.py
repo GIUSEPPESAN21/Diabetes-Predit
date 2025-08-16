@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v7.5 (Modo Depuración)
+Software Predictivo de Diabetes con IA v7.6 (Modo Depuración Corregido)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión modificada para capturar y mostrar los errores detallados de Firebase
-durante el registro y el inicio de sesión para un diagnóstico preciso.
+Versión que corrige el AttributeError en el manejo de excepciones para
+finalmente mostrar el error real devuelto por Firebase durante la autenticación.
 """
 
 import streamlit as st
@@ -209,15 +209,19 @@ if st.session_state.user is None:
                         user = auth_client.sign_in_with_email_and_password(email, password)
                         st.session_state.user = user
                         st.rerun()
-                    # **CAMBIO**: Captura de error detallado
+                    # **CAMBIO CORREGIDO**: Captura de error detallado
                     except requests.exceptions.HTTPError as e:
-                        error_json = e.response.json()
-                        error_message = error_json.get("error", {}).get("message", "ERROR_DESCONOCIDO")
-                        if "INVALID_LOGIN_CREDENTIALS" in error_message:
-                            st.error("Error: Email o contraseña incorrectos.")
-                        else:
-                            st.error(f"Firebase devolvió un error: {error_message}")
-                            st.code(e.response.text)
+                        try:
+                            error_json = json.loads(e.args[1])
+                            error_message = error_json.get("error", {}).get("message", "ERROR_DESCONOCIDO")
+                            if "INVALID_LOGIN_CREDENTIALS" in error_message:
+                                st.error("Error: Email o contraseña incorrectos.")
+                            else:
+                                st.error(f"Firebase devolvió un error: {error_message}")
+                                st.code(json.dumps(error_json, indent=2))
+                        except (IndexError, json.JSONDecodeError):
+                            st.error("Ocurrió un error de Firebase no reconocido.")
+                            st.code(str(e))
                     except Exception as e:
                         st.error(f"Ocurrió un error inesperado: {e}")
     
@@ -238,12 +242,16 @@ if st.session_state.user is None:
                             st.success(f"¡Cuenta creada con éxito para {email_reg}!")
                             st.info("Ahora puedes iniciar sesión con tus credenciales.")
                             st.balloons()
-                        # **CAMBIO**: Captura de error detallado
+                        # **CAMBIO CORREGIDO**: Captura de error detallado
                         except requests.exceptions.HTTPError as e:
-                            error_json = e.response.json()
-                            error_message = error_json.get("error", {}).get("message", "ERROR_DESCONOCIDO")
-                            st.error(f"Firebase devolvió un error: {error_message}")
-                            st.code(e.response.text) # Muestra el error completo
+                            try:
+                                error_json = json.loads(e.args[1])
+                                error_message = error_json.get("error", {}).get("message", "ERROR_DESCONOCIDO")
+                                st.error(f"Firebase devolvió un error: {error_message}")
+                                st.code(json.dumps(error_json, indent=2))
+                            except (IndexError, json.JSONDecodeError):
+                                st.error("Ocurrió un error de Firebase no reconocido.")
+                                st.code(str(e))
                         except Exception as e:
                             st.error(f"Ocurrió un error inesperado: {e}")
 else:
