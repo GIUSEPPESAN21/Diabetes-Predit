@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v10.0 (Versión Estable sin Login)
+Software Predictivo de Diabetes con IA v11.0 (Diseño con Pestañas)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión simplificada y 100% funcional que elimina el sistema de inicio de sesión
-para garantizar la máxima estabilidad. Utiliza un ID de sesión único para que los
-usuarios puedan guardar y consultar su historial.
+Versión final con una interfaz de usuario mejorada que utiliza pestañas para la
+navegación principal. Se reintroduce el Asistente de IA (Chatbot) como una
+función principal para una experiencia más completa.
 """
 
 import streamlit as st
@@ -21,11 +21,16 @@ import plotly.graph_objects as go
 import uuid
 
 # --- CONFIGURACIÓN DE PÁGINA Y ESTADO DE SESIÓN ---
-st.set_page_config(page_title="Predictor de Diabetes con IA", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Predictor de Diabetes con IA", layout="wide", initial_sidebar_state="collapsed")
 
-# Generar un ID de usuario único para la sesión si no existe
+# Inicializar estados de sesión
 if 'user_id' not in st.session_state:
     st.session_state.user_id = str(uuid.uuid4())
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "last_question" not in st.session_state:
+    st.session_state.last_question = ""
+
 
 # --- CONEXIÓN CON FIREBASE ---
 
@@ -168,18 +173,14 @@ def generar_grafico_riesgo(score):
 
 # --- INTERFAZ DE USUARIO ---
 
-st.sidebar.title("Navegación")
-opcion = st.sidebar.radio("Selecciona una opción", ["Realizar nuevo test", "Consultar historial"])
+st.title("🩺 Predictor de Diabetes con IA")
+st.markdown("Esta herramienta utiliza el **Cuestionario FINDRISC** para estimar tu riesgo de desarrollar Diabetes tipo 2 en los próximos 10 años.")
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("Autor")
-st.sidebar.info("Joseph Javier Sánchez Acuña\n\n*Ingeniero Industrial, Desarrollador de Aplicaciones Clínicas, Experto en Inteligencia Artificial.*\n\n**Contacto:** joseph.sanchez@uniminuto.edu.co")
+# --- NAVEGACIÓN POR PESTAÑAS ---
+tab1, tab2, tab3 = st.tabs(["**Realizar Nuevo Test**", "**Consultar Historial**", "**Asistente de IA (Chatbot)**"])
 
-
-if opcion == "Realizar nuevo test":
-    st.title("🩺 Predictor de Diabetes con IA")
-    st.markdown("Esta herramienta utiliza el **Cuestionario FINDRISC** para estimar tu riesgo de desarrollar Diabetes tipo 2 en los próximos 10 años.")
-    
+with tab1:
+    st.header("Cuestionario de Riesgo")
     with st.form("findrisc_form_v2"):
         col1, col2 = st.columns(2)
         with col1:
@@ -219,8 +220,8 @@ if opcion == "Realizar nuevo test":
         pdf_bytes = generar_pdf(datos_usuario)
         st.download_button(label="📥 Descargar Reporte en PDF", data=pdf_bytes, file_name=f"Reporte_Diabetes_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
 
-elif opcion == "Consultar historial":
-    st.title("📖 Consultar Historial de Tests")
+with tab2:
+    st.header("📖 Consultar Historial de Tests")
     st.markdown("Ingresa el ID de usuario que se te proporcionó al guardar tus resultados para ver tu historial.")
 
     user_id_input = st.text_input("Ingresa tu ID de usuario", value=st.session_state.user_id)
@@ -241,3 +242,43 @@ elif opcion == "Consultar historial":
                 st.warning("No se encontraron resultados para este ID. Verifica que sea correcto.")
         else:
             st.error("Por favor, ingresa un ID de usuario.")
+
+with tab3:
+    st.header("🤖 Asistente de Diabetes con IA (Chatbot)")
+    st.markdown("Hazme una pregunta sobre la diabetes o la salud en general.")
+
+    # Mostrar historial del chat
+    for msg in st.session_state.chat_history:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    # Input del usuario
+    if prompt := st.chat_input("Escribe tu pregunta aquí..."):
+        st.session_state.chat_history.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.spinner("Pensando..."):
+            full_prompt = f"Como un asistente de salud experto en diabetes, responde la siguiente pregunta de forma clara y concisa en español: '{prompt}'"
+            respuesta = llamar_gemini(full_prompt)
+            st.session_state.chat_history.append({"role": "assistant", "content": respuesta})
+        
+        # Refrescar para mostrar la nueva respuesta
+        st.rerun()
+
+# --- BARRA LATERAL (PARA INFORMACIÓN ADICIONAL) ---
+with st.sidebar:
+    st.title("Acerca de")
+    st.info(
+        """
+        **Predictor de Diabetes con IA**
+        
+        **Versión:** 11.0
+        
+        **Autor:** Joseph Javier Sánchez Acuña
+        
+        *Ingeniero Industrial, Desarrollador de Aplicaciones Clínicas, Experto en Inteligencia Artificial.*
+        
+        **Contacto:** joseph.sanchez@uniminuto.edu.co
+        """
+    )
