@@ -1,34 +1,33 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v9.0 (Versión Estable Final)
+Software Predictivo de Diabetes con IA v10.0 (Versión Estable sin Login)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión final que integra una arquitectura de autenticación probada y funcional,
-basada en una estructura estable para resolver problemas de conexión persistentes.
+Versión simplificada y 100% funcional que elimina el sistema de inicio de sesión
+para garantizar la máxima estabilidad. Utiliza un ID de sesión único para que los
+usuarios puedan guardar y consultar su historial.
 """
 
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
-import pyrebase
 from fpdf import FPDF
 from datetime import datetime
 import requests
 import json
 import plotly.graph_objects as go
-import os
-import tempfile
+import uuid
 
 # --- CONFIGURACIÓN DE PÁGINA Y ESTADO DE SESIÓN ---
-st.set_page_config(page_title="Predictor de Diabetes con IA", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Predictor de Diabetes con IA", layout="wide", initial_sidebar_state="expanded")
 
-# Inicializar el estado de la sesión para el usuario
-if 'user' not in st.session_state:
-    st.session_state.user = None
+# Generar un ID de usuario único para la sesión si no existe
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = str(uuid.uuid4())
 
-# --- CONEXIÓN CON FIREBASE (MÉTODO PROBADO) ---
+# --- CONEXIÓN CON FIREBASE ---
 
 @st.cache_resource
 def initialize_firebase_admin():
@@ -36,34 +35,21 @@ def initialize_firebase_admin():
     try:
         if "firebase_credentials" in st.secrets:
             creds_dict = dict(st.secrets["firebase_credentials"])
-            # Asegurar formato correcto de la clave privada
             if 'private_key' in creds_dict:
                  creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
             cred = credentials.Certificate(creds_dict)
             if not firebase_admin._apps:
                 firebase_admin.initialize_app(cred)
             return firestore.client()
+        st.error("Credenciales de Firebase no encontradas en los secretos.")
         return None
     except Exception as e:
         st.error(f"Error crítico al conectar con Firebase Admin: {e}")
         return None
 
-@st.cache_resource
-def initialize_firebase_auth():
-    """Inicializa el SDK de CLIENTE para autenticación."""
-    try:
-        if "firebase_client_config" in st.secrets:
-            firebase_client_config = dict(st.secrets["firebase_client_config"])
-            return pyrebase.initialize_app(firebase_client_config)
-        return None
-    except Exception as e:
-        st.error(f"Error crítico al inicializar Pyrebase: {e}")
-        return None
-
 db = initialize_firebase_admin()
-firebase_auth_app = initialize_firebase_auth()
 
-# --- FUNCIONES DE LA APLICACIÓN (SIN CAMBIOS) ---
+# --- FUNCIONES DE LA APLICACIÓN ---
 
 class PDF(FPDF):
     def header(self): self.set_font('Arial', 'B', 12); self.cell(0, 10, 'Reporte de Riesgo de Diabetes', 0, 1, 'C'); self.ln(10)
@@ -147,16 +133,22 @@ def obtener_analisis_ia(datos_usuario):
     return llamar_gemini(prompt)
 
 def guardar_datos_en_firestore(user_id, datos):
-    if not db: return
+    if not db:
+        st.warning("No se pueden guardar los datos porque la conexión con Firebase falló.")
+        return
     try:
         doc_ref = db.collection('usuarios').document(user_id).collection('tests').document()
         doc_ref.set(datos)
-        st.success("¡Resultados guardados con éxito en tu historial!")
+        st.success(f"¡Resultados guardados con éxito! Tu ID de usuario es:")
+        st.code(user_id)
+        st.info("Guarda este ID para consultar tus resultados en el futuro.")
     except Exception as e:
         st.error(f"Ocurrió un error al guardar los datos: {e}")
 
 def cargar_datos_de_firestore(user_id):
-    if not db: return []
+    if not db:
+        st.warning("No se pueden cargar los datos porque la conexión con Firebase falló.")
+        return []
     try:
         tests_ref = db.collection('usuarios').document(user_id).collection('tests').order_by("fecha", direction=firestore.Query.DESCENDING)
         docs = tests_ref.stream()
@@ -176,148 +168,76 @@ def generar_grafico_riesgo(score):
 
 # --- INTERFAZ DE USUARIO ---
 
-def display_login_form():
-    """Muestra el formulario de inicio de sesión y registro."""
+st.sidebar.title("Navegación")
+opcion = st.sidebar.radio("Selecciona una opción", ["Realizar nuevo test", "Consultar historial"])
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("Autor")
+st.sidebar.info("Joseph Javier Sánchez Acuña\n\n*Ingeniero Industrial, Desarrollador de Aplicaciones Clínicas, Experto en Inteligencia Artificial.*\n\n**Contacto:** joseph.sanchez@uniminuto.edu.co")
+
+
+if opcion == "Realizar nuevo test":
     st.title("🩺 Predictor de Diabetes con IA")
-    st.markdown("Bienvenido. Por favor, inicie sesión o regístrese para continuar.")
-
-    if not firebase_auth_app:
-        st.error("La configuración de autenticación no está disponible. Contacta al administrador.")
-        return
-
-    auth_client = firebase_auth_app.auth()
-    col1, col2 = st.columns([1,1])
-
-    with col1:
-        with st.container(border=True):
-            st.subheader("Iniciar Sesión")
-            email = st.text_input("Correo Electrónico", key="login_email")
-            password = st.text_input("Contraseña", type="password", key="login_pass")
-            if st.button("Entrar", use_container_width=True, type="primary"):
-                try:
-                    user = auth_client.sign_in_with_email_and_password(email, password)
-                    st.session_state.user = user
-                    st.rerun()
-                except Exception:
-                    st.error("Error: Email o contraseña incorrectos.")
+    st.markdown("Esta herramienta utiliza el **Cuestionario FINDRISC** para estimar tu riesgo de desarrollar Diabetes tipo 2 en los próximos 10 años.")
     
-    with col2:
-        with st.container(border=True):
-            st.subheader("Registrar Nuevo Usuario")
-            name = st.text_input("Nombre Completo", key="reg_name")
-            email_reg = st.text_input("Correo Electrónico para registrar", key="reg_email")
-            password_reg = st.text_input("Crea una Contraseña (mín. 6 caracteres)", type="password", key="reg_pass")
-            if st.button("Registrarse", use_container_width=True):
-                if not all([name, email_reg, password_reg]):
-                    st.warning("Por favor, completa todos los campos.")
-                else:
-                    try:
-                        user = auth_client.create_user_with_email_and_password(email_reg, password_reg)
-                        st.success(f"¡Cuenta creada con éxito para {email_reg}!")
-                        st.info("Ahora puedes iniciar sesión con tus credenciales.")
-                        st.balloons()
-                    except Exception:
-                        st.error("Error al crear la cuenta. Es posible que el correo ya esté en uso o la contraseña sea muy débil.")
-
-def display_main_app():
-    """Muestra la aplicación principal una vez que el usuario está autenticado."""
-    user_email = st.session_state.user.get('email', 'Usuario')
-    user_uid = st.session_state.user.get('localId')
+    with st.form("findrisc_form_v2"):
+        col1, col2 = st.columns(2)
+        with col1:
+            edad = st.number_input("1. Edad", 18, 120, 40)
+            sexo = st.selectbox("2. Sexo", ("Masculino", "Femenino"))
+            peso = st.number_input("3. Peso (kg)", 30.0, 300.0, 70.0, 0.5)
+            altura = st.number_input("4. Altura (m)", 1.0, 2.5, 1.75, 0.01)
+            cintura = st.number_input("5. Perímetro de cintura (cm)", 50, 200, 90)
+        with col2:
+            actividad = st.radio("6. ¿Realizas al menos 30 min de actividad física diaria?", ("Sí", "No"))
+            frutas_verduras = st.radio("7. ¿Comes frutas y verduras todos los días?", ("Sí", "No todos los días"))
+            hipertension = st.radio("8. ¿Tomas medicamentos para la presión alta?", ("Sí", "No"))
+            glucosa_alta = st.radio("9. ¿Has tenido niveles de glucosa altos alguna vez?", ("Sí", "No"))
+        familiar_diabetes = st.selectbox("10. ¿Familiares con diabetes?", ("No", "Sí: abuelos, tíos o primos", "Sí: padres, hermanos o hijos"))
+        submit_button = st.form_submit_button("Calcular Riesgo y Generar Reporte", use_container_width=True, type="primary")
     
-    with st.sidebar:
-        st.title(f"Bienvenido,")
-        st.markdown(f"*{user_email}*")
-        if st.button("Cerrar Sesión", use_container_width=True, type="secondary"):
-            st.session_state.user = None
-            st.rerun()
-        st.markdown("---")
-        st.subheader("Autor")
-        st.info("Joseph Javier Sánchez Acuña\n\n*Ingeniero Industrial, Desarrollador de Aplicaciones Clínicas, Experto en Inteligencia Artificial.*\n\n**Contacto:** joseph.sanchez@uniminuto.edu.co")
-
-    st.title("🩺 Predictor de Diabetes con IA")
-    
-    tab1, tab2, tab3 = st.tabs(["**Análisis de Caso**", "**Asistente de Diabetes (Chatbot)**", "**Consultar Casos Anteriores**"])
-
-    with tab1:
-        st.header("Realizar Nuevo Test de Riesgo")
-        with st.form("findrisc_form_v2"):
-            col1, col2 = st.columns(2)
-            with col1:
-                edad = st.number_input("1. Edad", 18, 120, 40)
-                sexo = st.selectbox("2. Sexo", ("Masculino", "Femenino"))
-                peso = st.number_input("3. Peso (kg)", 30.0, 300.0, 70.0, 0.5)
-                altura = st.number_input("4. Altura (m)", 1.0, 2.5, 1.75, 0.01)
-                cintura = st.number_input("5. Perímetro de cintura (cm)", 50, 200, 90)
-            with col2:
-                actividad = st.radio("6. ¿Realizas al menos 30 min de actividad física diaria?", ("Sí", "No"))
-                frutas_verduras = st.radio("7. ¿Comes frutas y verduras todos los días?", ("Sí", "No todos los días"))
-                hipertension = st.radio("8. ¿Tomas medicamentos para la presión alta?", ("Sí", "No"))
-                glucosa_alta = st.radio("9. ¿Has tenido niveles de glucosa altos alguna vez?", ("Sí", "No"))
-            familiar_diabetes = st.selectbox("10. ¿Familiares con diabetes?", ("No", "Sí: abuelos, tíos o primos", "Sí: padres, hermanos o hijos"))
-            submit_button = st.form_submit_button("Calcular Riesgo y Generar Reporte", use_container_width=True, type="primary")
+    if submit_button:
+        imc = peso / (altura ** 2)
+        puntaje = calcular_puntaje_findrisc(edad, imc, cintura, sexo, actividad, frutas_verduras, hipertension, glucosa_alta, familiar_diabetes)
+        nivel_riesgo, estimacion = obtener_interpretacion_riesgo(puntaje)
+        datos_usuario = {"fecha": datetime.now().isoformat(), "edad": edad, "sexo": sexo, "imc": imc, "cintura": cintura, "actividad": actividad, "frutas_verduras": frutas_verduras, "hipertension": hipertension, "glucosa_alta": glucosa_alta, "familiar_diabetes": familiar_diabetes, "puntaje": puntaje, "nivel_riesgo": nivel_riesgo, "estimacion": estimacion}
         
-        if submit_button:
-            imc = peso / (altura ** 2)
-            puntaje = calcular_puntaje_findrisc(edad, imc, cintura, sexo, actividad, frutas_verduras, hipertension, glucosa_alta, familiar_diabetes)
-            nivel_riesgo, estimacion = obtener_interpretacion_riesgo(puntaje)
-            datos_usuario = {"fecha": datetime.now().isoformat(), "edad": edad, "sexo": sexo, "imc": imc, "cintura": cintura, "actividad": actividad, "frutas_verduras": frutas_verduras, "hipertension": hipertension, "glucosa_alta": glucosa_alta, "familiar_diabetes": familiar_diabetes, "puntaje": puntaje, "nivel_riesgo": nivel_riesgo, "estimacion": estimacion}
-            
-            with st.spinner("🤖 Analizando tus resultados con IA..."):
-                analisis_ia = obtener_analisis_ia(datos_usuario)
-                datos_usuario["analisis_ia"] = analisis_ia
+        with st.spinner("🤖 Analizando tus resultados con IA..."):
+            analisis_ia = obtener_analisis_ia(datos_usuario)
+            datos_usuario["analisis_ia"] = analisis_ia
 
-            st.subheader("Resultados de tu Evaluación")
-            grafico = generar_grafico_riesgo(puntaje)
-            st.plotly_chart(grafico, use_container_width=True)
-            st.info(f"**Estimación a 10 años:** {estimacion}")
-            st.markdown("---")
-            st.subheader("🧠 Análisis y Recomendaciones por IA")
-            st.markdown(analisis_ia)
+        st.subheader("Resultados de tu Evaluación")
+        grafico = generar_grafico_riesgo(puntaje)
+        st.plotly_chart(grafico, use_container_width=True)
+        st.info(f"**Estimación a 10 años:** {estimacion}")
+        st.markdown("---")
+        st.subheader("🧠 Análisis y Recomendaciones por IA")
+        st.markdown(analisis_ia)
 
-            guardar_datos_en_firestore(user_uid, datos_usuario)
-            
-            pdf_bytes = generar_pdf(datos_usuario)
-            st.download_button(label="📥 Descargar Reporte en PDF", data=pdf_bytes, file_name=f"Reporte_Diabetes_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
+        guardar_datos_en_firestore(st.session_state.user_id, datos_usuario)
+        
+        pdf_bytes = generar_pdf(datos_usuario)
+        st.download_button(label="📥 Descargar Reporte en PDF", data=pdf_bytes, file_name=f"Reporte_Diabetes_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
 
-    with tab2:
-        st.header("🤖 Asistente de Diabetes con Gemini")
-        if "chat_history" not in st.session_state: st.session_state.chat_history = []
-        preguntas = ["¿Cuáles son los primeros síntomas de la diabetes?", "¿Qué alimentos debe evitar una persona con prediabetes?", "¿Cómo afecta el ejercicio al nivel de azúcar en la sangre?", "Explícame la diferencia entre diabetes tipo 1 y tipo 2."]
-        q_cols = st.columns(2)
-        for i, q in enumerate(preguntas):
-            if q_cols[i % 2].button(q, use_container_width=True, key=f"q_{i}"):
-                st.session_state.last_question = q
-        if prompt := st.chat_input("Escribe tu pregunta aquí...") or st.session_state.get('last_question'):
-            st.session_state.last_question = ""
-            st.session_state.chat_history.append({"role": "user", "content": prompt})
-            with st.spinner("Pensando..."):
-                respuesta = llamar_gemini(f"Como experto en salud, responde: '{prompt}'")
-                st.session_state.chat_history.append({"role": "assistant", "content": respuesta})
-        for msg in st.session_state.chat_history:
-            with st.chat_message(msg["role"]): st.markdown(msg["content"])
+elif opcion == "Consultar historial":
+    st.title("📖 Consultar Historial de Tests")
+    st.markdown("Ingresa el ID de usuario que se te proporcionó al guardar tus resultados para ver tu historial.")
 
-    with tab3:
-        st.header("📖 Consultar Mis Casos Anteriores")
-        historial = cargar_datos_de_firestore(user_uid)
-        if historial:
-            st.success(f"Se encontraron {len(historial)} registros.")
-            for test in historial:
-                fecha_test = datetime.fromisoformat(test['fecha']).strftime('%d-%m-%Y %H:%M')
-                with st.expander(f"Test del {fecha_test} - Puntaje: {test['puntaje']} ({test['nivel_riesgo']})"):
-                    st.write(f"**IMC:** {test['imc']:.2f}, **Cintura:** {test['cintura']} cm")
-                    st.markdown("---")
-                    st.subheader("Análisis de IA de este resultado:")
-                    st.markdown(test.get("analisis_ia", "No hay análisis disponible."))
+    user_id_input = st.text_input("Ingresa tu ID de usuario", value=st.session_state.user_id)
+
+    if st.button("Buscar Historial", use_container_width=True):
+        if user_id_input:
+            historial = cargar_datos_de_firestore(user_id_input)
+            if historial:
+                st.success(f"Se encontraron {len(historial)} registros para el ID proporcionado.")
+                for test in historial:
+                    fecha_test = datetime.fromisoformat(test['fecha']).strftime('%d-%m-%Y %H:%M')
+                    with st.expander(f"Test del {fecha_test} - Puntaje: {test['puntaje']} ({test['nivel_riesgo']})"):
+                        st.write(f"**IMC:** {test['imc']:.2f}, **Cintura:** {test['cintura']} cm")
+                        st.markdown("---")
+                        st.subheader("Análisis de IA de este resultado:")
+                        st.markdown(test.get("analisis_ia", "No hay análisis disponible."))
+            else:
+                st.warning("No se encontraron resultados para este ID. Verifica que sea correcto.")
         else:
-            st.info("Aún no tienes casos guardados.")
-
-# --- FLUJO PRINCIPAL DE LA APLICACIÓN ---
-def main():
-    """Función principal que dirige al login o a la app."""
-    if 'user' not in st.session_state or st.session_state.user is None:
-        display_login_form()
-    else:
-        display_main_app()
-
-if __name__ == "__main__":
-    main()
+            st.error("Por favor, ingresa un ID de usuario.")
