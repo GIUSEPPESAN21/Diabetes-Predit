@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v7.4 (Final Estable)
+Software Predictivo de Diabetes con IA v7.5 (Modo Depuración)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Versión final y funcional que incluye todas las correcciones de
-inicialización de Firebase Admin y la configuración del cliente.
+Versión modificada para capturar y mostrar los errores detallados de Firebase
+durante el registro y el inicio de sesión para un diagnóstico preciso.
 """
 
 import streamlit as st
@@ -34,12 +34,10 @@ st.markdown("""
 
 # --- CONFIGURACIÓN DE SERVICIOS ---
 
-# 1. SDK de Administrador (VERSIÓN CON RECONSTRUCCIÓN DE CLAVE)
+# 1. SDK de Administrador
 try:
     if not firebase_admin._apps:
         firebase_secrets_dict = dict(st.secrets["firebase_credentials"])
-        
-        # --- INICIO DE LA CORRECCIÓN ROBUSTA ---
         raw_private_key = firebase_secrets_dict["private_key"]
         cleaned_key = raw_private_key.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replace("\\n", "").replace("\n", "").strip()
         rebuilt_private_key = (
@@ -48,17 +46,12 @@ try:
             + "\n-----END PRIVATE KEY-----\n"
         )
         firebase_secrets_dict["private_key"] = rebuilt_private_key
-        # --- FIN DE LA CORRECCIÓN ROBUSTA ---
-        
         cred = credentials.Certificate(firebase_secrets_dict)
         firebase_admin.initialize_app(cred)
-    
     db = firestore.client()
-
 except Exception as e:
     st.error(f"Error crítico al inicializar Firebase Admin: {e}.")
     st.stop()
-
 
 # 2. SDK de Cliente con Pyrebase
 try:
@@ -71,11 +64,9 @@ except Exception as e:
 
 # 3. Clave de API de Gemini
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    st.warning("Clave de API de Gemini no encontrada. Las funciones de IA estarán deshabilitadas.")
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
-# --- FUNCIONES DE LA APLICACIÓN ---
+# --- (El resto del código no cambia) ---
 
 class PDF(FPDF):
     def header(self): self.set_font('Arial', 'B', 12); self.cell(0, 10, 'Reporte de Riesgo de Diabetes', 0, 1, 'C'); self.ln(10)
@@ -140,9 +131,7 @@ def obtener_interpretacion_riesgo(score):
     else: return "Riesgo muy alto", "1 de cada 2 personas desarrollará diabetes."
 
 def llamar_gemini(prompt):
-    if not GEMINI_API_KEY:
-        return "Error: La clave de API de Gemini no está configurada."
-    
+    if not GEMINI_API_KEY: return "Error: La clave de API de Gemini no está configurada."
     headers = {"Content-Type": "application/json"}
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
@@ -150,10 +139,8 @@ def llamar_gemini(prompt):
         response.raise_for_status()
         result = response.json()
         return result['candidates'][0]['content']['parts'][0]['text']
-    except requests.exceptions.RequestException as e:
-        return f"Error de conexión con la API de Gemini: {e}"
-    except (KeyError, IndexError):
-        return f"Respuesta inesperada de la API de Gemini."
+    except requests.exceptions.RequestException as e: return f"Error de conexión con la API de Gemini: {e}"
+    except (KeyError, IndexError): return f"Respuesta inesperada de la API de Gemini."
 
 def obtener_analisis_ia(datos_usuario):
     prompt = f"""
@@ -192,27 +179,10 @@ def cargar_datos_de_firestore(user_id):
 
 def generar_grafico_riesgo(score):
     fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=score,
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "<b>Nivel de Riesgo de Diabetes</b>"},
-        gauge={
-            'axis': {'range': [0, 25], 'tickwidth': 1, 'tickcolor': "darkblue"},
-            'bar': {'color': "rgba(0,0,0,0.4)"},
-            'bgcolor': "white",
-            'borderwidth': 2,
-            'bordercolor': "#cccccc",
-            'steps': [
-                {'range': [0, 6], 'color': '#28a745'},
-                {'range': [7, 11], 'color': '#a3d900'},
-                {'range': [12, 14], 'color': '#ffc107'},
-                {'range': [15, 20], 'color': '#fd7e14'},
-                {'range': [21, 25], 'color': '#dc3545'}],
-            'threshold': {
-                'line': {'color': "black", 'width': 4},
-                'thickness': 0.85,
-                'value': score}
-        }))
+        mode="gauge+number", value=score, domain={'x': [0, 1], 'y': [0, 1]}, title={'text': "<b>Nivel de Riesgo de Diabetes</b>"},
+        gauge={'axis': {'range': [0, 25], 'tickwidth': 1, 'tickcolor': "darkblue"}, 'bar': {'color': "rgba(0,0,0,0.4)"}, 'bgcolor': "white", 'borderwidth': 2, 'bordercolor': "#cccccc",
+               'steps': [{'range': [0, 6], 'color': '#28a745'}, {'range': [7, 11], 'color': '#a3d900'}, {'range': [12, 14], 'color': '#ffc107'}, {'range': [15, 20], 'color': '#fd7e14'}, {'range': [21, 25], 'color': '#dc3545'}],
+               'threshold': {'line': {'color': "black", 'width': 4}, 'thickness': 0.85, 'value': score}}))
     fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", font={'color': "#333333", 'family': "Arial"})
     return fig
 
@@ -239,8 +209,17 @@ if st.session_state.user is None:
                         user = auth_client.sign_in_with_email_and_password(email, password)
                         st.session_state.user = user
                         st.rerun()
-                    except Exception:
-                        st.error("Error: Email o contraseña incorrectos.")
+                    # **CAMBIO**: Captura de error detallado
+                    except requests.exceptions.HTTPError as e:
+                        error_json = e.response.json()
+                        error_message = error_json.get("error", {}).get("message", "ERROR_DESCONOCIDO")
+                        if "INVALID_LOGIN_CREDENTIALS" in error_message:
+                            st.error("Error: Email o contraseña incorrectos.")
+                        else:
+                            st.error(f"Firebase devolvió un error: {error_message}")
+                            st.code(e.response.text)
+                    except Exception as e:
+                        st.error(f"Ocurrió un error inesperado: {e}")
     
     with col2:
         with st.container(border=True):
@@ -259,8 +238,14 @@ if st.session_state.user is None:
                             st.success(f"¡Cuenta creada con éxito para {email_reg}!")
                             st.info("Ahora puedes iniciar sesión con tus credenciales.")
                             st.balloons()
-                        except Exception:
-                            st.error("Error al crear la cuenta. Es posible que el correo ya esté en uso o la contraseña sea muy débil.")
+                        # **CAMBIO**: Captura de error detallado
+                        except requests.exceptions.HTTPError as e:
+                            error_json = e.response.json()
+                            error_message = error_json.get("error", {}).get("message", "ERROR_DESCONOCIDO")
+                            st.error(f"Firebase devolvió un error: {error_message}")
+                            st.code(e.response.text) # Muestra el error completo
+                        except Exception as e:
+                            st.error(f"Ocurrió un error inesperado: {e}")
 else:
     user_email = st.session_state.user.get('email', 'Usuario')
     user_uid = st.session_state.user.get('localId')
