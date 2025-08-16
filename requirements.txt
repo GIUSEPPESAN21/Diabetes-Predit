@@ -4,7 +4,4 @@ plotly
 numpy
 firebase-admin
 requests
-Pyrebase4==4.8.0
 fpdf
-pycryptodome
-google-cloud-storage
