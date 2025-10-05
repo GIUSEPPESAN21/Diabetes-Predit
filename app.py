@@ -144,23 +144,23 @@ def llamar_gemini(prompt):
         genai.configure(api_key=GEMINI_API_KEY)
         
         generation_config = {
-            "temperature": 0.4,
+            "temperature": 0.3,
             "top_p": 0.95,
             "top_k": 40,
             "max_output_tokens": 4096,
         }
 
         safety_settings = [
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
         ]
         
         modelos_disponibles = [
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-pro-latest",
-            "gemini-1.0-pro"
+            "gemini-1.5-pro-001",
+            "gemini-1.5-flash-001",
+            "gemini-1.5-flash",
         ]
         
         for modelo in modelos_disponibles:
@@ -343,7 +343,7 @@ with st.sidebar:
         """
         **Predictor de Diabetes con IA**
         
-        **Versión:** 11.1 (Corrección Gemini)
+        **Versión:** 11.2 (Modelos de IA actualizados)
         
         **Autor:** Joseph Javier Sánchez Acuña
         
@@ -356,3 +356,4 @@ with st.sidebar:
     st.markdown("### 🤖 Estado de la IA")
     modelo_actual = st.session_state.get('selected_model', 'No determinado')
     st.metric(label="Modelo de IA Activo", value=modelo_actual)
+
