@@ -8,6 +8,9 @@ Descripción:
 Versión final con una interfaz de usuario mejorada que utiliza pestañas para la
 navegación principal. Se reintroduce el Asistente de IA (Chatbot) como una
 función principal para una experiencia más completa.
+
+CORRECCIÓN: Se actualiza la función de llamada a Gemini para usar el SDK oficial
+de Google y se implementa un sistema de fallback de modelos para resolver el error 404.
 """
 
 import streamlit as st
@@ -15,10 +18,17 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from fpdf import FPDF
 from datetime import datetime
-import requests
-import json
 import plotly.graph_objects as go
 import uuid
+import logging
+
+# Importación de la librería oficial de Google (CORREGIDA)
+import google.generativeai as genai
+
+# --- CONFIGURACIÓN DE LOGGING ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 
 # --- CONFIGURACIÓN DE PÁGINA Y ESTADO DE SESIÓN ---
 st.set_page_config(page_title="Predictor de Diabetes con IA", layout="wide", initial_sidebar_state="collapsed")
@@ -30,6 +40,8 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "last_question" not in st.session_state:
     st.session_state.last_question = ""
+if 'selected_model' not in st.session_state:
+    st.session_state.selected_model = "No determinado"
 
 
 # --- CONEXIÓN CON FIREBASE ---
@@ -116,25 +128,75 @@ def obtener_interpretacion_riesgo(score):
     elif 15 <= score <= 20: return "Riesgo alto", "1 de cada 3 personas desarrollará diabetes."
     else: return "Riesgo muy alto", "1 de cada 2 personas desarrollará diabetes."
 
+# --- FUNCIÓN GEMINI CORREGIDA Y OPTIMIZADA ---
 def llamar_gemini(prompt):
+    """
+    Función corregida que usa el SDK oficial de Google y un sistema de fallback
+    para evitar errores 404 y mejorar la robustez.
+    """
     GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
     if not GEMINI_API_KEY or "PEGA_AQUÍ" in GEMINI_API_KEY:
-        return "Error: La clave de API de Gemini no está configurada en los secretos."
-    GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-    headers = {"Content-Type": "application/json"}
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        error_msg = "Error: La clave de API de Gemini no está configurada correctamente en los secretos."
+        st.error(error_msg)
+        return error_msg
+    
     try:
-        response = requests.post(GEMINI_API_URL, headers=headers, json=payload, timeout=90)
-        response.raise_for_status()
-        result = response.json()
-        return result['candidates'][0]['content']['parts'][0]['text']
-    except requests.exceptions.RequestException as e:
-        return f"Error de conexión con la API de Gemini: {e}"
-    except (KeyError, IndexError):
-        return f"Respuesta inesperada de la API de Gemini. Verifica que tu clave de API sea correcta."
+        genai.configure(api_key=GEMINI_API_KEY)
+        
+        generation_config = {
+            "temperature": 0.4,
+            "top_p": 0.95,
+            "top_k": 40,
+            "max_output_tokens": 4096,
+        }
+
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+        ]
+        
+        modelos_disponibles = [
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-pro-latest",
+            "gemini-1.0-pro"
+        ]
+        
+        for modelo in modelos_disponibles:
+            try:
+                model = genai.GenerativeModel(
+                    model_name=modelo,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings
+                )
+                response = model.generate_content(prompt)
+                
+                if response.parts:
+                    texto_respuesta = "".join(part.text for part in response.parts)
+                    if texto_respuesta.strip():
+                        logger.info(f"Respuesta exitosa usando modelo: {modelo}")
+                        st.session_state.selected_model = modelo
+                        return texto_respuesta
+                
+                logger.warning(f"Respuesta vacía o bloqueada del modelo {modelo}. Probando siguiente modelo.")
+                continue
+
+            except Exception as modelo_error:
+                logger.warning(f"Error con modelo {modelo}: {str(modelo_error)}. Probando siguiente modelo...")
+                continue
+        
+        error_message = "Todos los modelos de Gemini fallaron o no están disponibles."
+        st.error(error_message)
+        return f"Error: {error_message}"
+
+    except Exception as e:
+        error_message = f"Error crítico al configurar o llamar a la API de Gemini: {e}"
+        st.error(error_message)
+        return error_message
 
 def obtener_analisis_ia(datos_usuario):
-    prompt = f"Como experto en salud, analiza estos datos del test FINDRISC: {datos_usuario} y ofrece un análisis del resultado, recomendaciones clave y próximos pasos."
+    prompt = f"Como un experto en salud y prevención de la diabetes, analiza los siguientes datos del test FINDRISC de un paciente: {datos_usuario}. Basado en esta información, proporciona un análisis detallado del nivel de riesgo, ofrece 3 recomendaciones clave, claras y accionables para reducir su riesgo, y sugiere los próximos pasos a seguir. El tono debe ser profesional, empático y fácil de entender para una persona sin conocimientos médicos."
     return llamar_gemini(prompt)
 
 def guardar_datos_en_firestore(user_id, datos):
@@ -198,27 +260,30 @@ with tab1:
         submit_button = st.form_submit_button("Calcular Riesgo y Generar Reporte", use_container_width=True, type="primary")
     
     if submit_button:
-        imc = peso / (altura ** 2)
-        puntaje = calcular_puntaje_findrisc(edad, imc, cintura, sexo, actividad, frutas_verduras, hipertension, glucosa_alta, familiar_diabetes)
-        nivel_riesgo, estimacion = obtener_interpretacion_riesgo(puntaje)
-        datos_usuario = {"fecha": datetime.now().isoformat(), "edad": edad, "sexo": sexo, "imc": imc, "cintura": cintura, "actividad": actividad, "frutas_verduras": frutas_verduras, "hipertension": hipertension, "glucosa_alta": glucosa_alta, "familiar_diabetes": familiar_diabetes, "puntaje": puntaje, "nivel_riesgo": nivel_riesgo, "estimacion": estimacion}
-        
-        with st.spinner("🤖 Analizando tus resultados con IA..."):
-            analisis_ia = obtener_analisis_ia(datos_usuario)
-            datos_usuario["analisis_ia"] = analisis_ia
+        if altura > 0:
+            imc = peso / (altura ** 2)
+            puntaje = calcular_puntaje_findrisc(edad, imc, cintura, sexo, actividad, frutas_verduras, hipertension, glucosa_alta, familiar_diabetes)
+            nivel_riesgo, estimacion = obtener_interpretacion_riesgo(puntaje)
+            datos_usuario = {"fecha": datetime.now().isoformat(), "edad": edad, "sexo": sexo, "imc": imc, "cintura": cintura, "actividad": actividad, "frutas_verduras": frutas_verduras, "hipertension": hipertension, "glucosa_alta": glucosa_alta, "familiar_diabetes": familiar_diabetes, "puntaje": puntaje, "nivel_riesgo": nivel_riesgo, "estimacion": estimacion}
+            
+            with st.spinner("🤖 Analizando tus resultados con IA..."):
+                analisis_ia = obtener_analisis_ia(datos_usuario)
+                datos_usuario["analisis_ia"] = analisis_ia
 
-        st.subheader("Resultados de tu Evaluación")
-        grafico = generar_grafico_riesgo(puntaje)
-        st.plotly_chart(grafico, use_container_width=True)
-        st.info(f"**Estimación a 10 años:** {estimacion}")
-        st.markdown("---")
-        st.subheader("🧠 Análisis y Recomendaciones por IA")
-        st.markdown(analisis_ia)
+            st.subheader("Resultados de tu Evaluación")
+            grafico = generar_grafico_riesgo(puntaje)
+            st.plotly_chart(grafico, use_container_width=True)
+            st.info(f"**Estimación a 10 años:** {estimacion}")
+            st.markdown("---")
+            st.subheader("🧠 Análisis y Recomendaciones por IA")
+            st.markdown(analisis_ia)
 
-        guardar_datos_en_firestore(st.session_state.user_id, datos_usuario)
-        
-        pdf_bytes = generar_pdf(datos_usuario)
-        st.download_button(label="📥 Descargar Reporte en PDF", data=pdf_bytes, file_name=f"Reporte_Diabetes_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
+            guardar_datos_en_firestore(st.session_state.user_id, datos_usuario)
+            
+            pdf_bytes = generar_pdf(datos_usuario)
+            st.download_button(label="📥 Descargar Reporte en PDF", data=pdf_bytes, file_name=f"Reporte_Diabetes_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
+        else:
+            st.error("La altura no puede ser cero. Por favor, introduce un valor válido.")
 
 with tab2:
     st.header("📖 Consultar Historial de Tests")
@@ -232,9 +297,13 @@ with tab2:
             if historial:
                 st.success(f"Se encontraron {len(historial)} registros para el ID proporcionado.")
                 for test in historial:
-                    fecha_test = datetime.fromisoformat(test['fecha']).strftime('%d-%m-%Y %H:%M')
-                    with st.expander(f"Test del {fecha_test} - Puntaje: {test['puntaje']} ({test['nivel_riesgo']})"):
-                        st.write(f"**IMC:** {test['imc']:.2f}, **Cintura:** {test['cintura']} cm")
+                    try:
+                        fecha_test = datetime.fromisoformat(test['fecha']).strftime('%d-%m-%Y %H:%M')
+                    except (ValueError, TypeError):
+                        fecha_test = "Fecha desconocida"
+                    
+                    with st.expander(f"Test del {fecha_test} - Puntaje: {test.get('puntaje', 'N/A')} ({test.get('nivel_riesgo', 'N/A')})"):
+                        st.write(f"**IMC:** {test.get('imc', 0):.2f}, **Cintura:** {test.get('cintura', 'N/A')} cm")
                         st.markdown("---")
                         st.subheader("Análisis de IA de este resultado:")
                         st.markdown(test.get("analisis_ia", "No hay análisis disponible."))
@@ -263,8 +332,9 @@ with tab3:
             respuesta = llamar_gemini(full_prompt)
             st.session_state.chat_history.append({"role": "assistant", "content": respuesta})
         
-        # Refrescar para mostrar la nueva respuesta
-        st.rerun()
+        with st.chat_message("assistant"):
+            st.markdown(respuesta)
+
 
 # --- BARRA LATERAL (PARA INFORMACIÓN ADICIONAL) ---
 with st.sidebar:
@@ -273,7 +343,7 @@ with st.sidebar:
         """
         **Predictor de Diabetes con IA**
         
-        **Versión:** 11.0
+        **Versión:** 11.1 (Corrección Gemini)
         
         **Autor:** Joseph Javier Sánchez Acuña
         
@@ -282,3 +352,7 @@ with st.sidebar:
         **Contacto:** joseph.sanchez@uniminuto.edu.co
         """
     )
+    st.markdown("---")
+    st.markdown("### 🤖 Estado de la IA")
+    modelo_actual = st.session_state.get('selected_model', 'No determinado')
+    st.metric(label="Modelo de IA Activo", value=modelo_actual)
