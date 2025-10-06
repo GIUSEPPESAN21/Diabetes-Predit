@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v12.0 (Autenticación y UI Mejorada)
+Software Predictivo de Diabetes con IA v12.1 (Corrección de UI)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Esta versión introduce un sistema de autenticación de usuarios (login y registro)
-y renueva por completo la interfaz de usuario. Se elimina la barra lateral para
-integrar todo en una navegación por pestañas más limpia y moderna. También se
-aplica un nuevo estilo visual para mejorar la experiencia del usuario.
+Esta versión corrige un error de renderizado en st.container que impedía
+el inicio de la aplicación. Se ha modificado la forma en que se dibujan
+los contenedores principales para seguir las mejores prácticas de Streamlit.
 """
 
 import streamlit as st
@@ -45,12 +44,7 @@ def load_css():
             background-color: transparent;
         }
         
-        .main-container {
-            padding: 2rem;
-            background-color: #FFFFFF;
-            border-radius: 20px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-        }
+        /* Contenedor principal con borde que se aplica con st.container(border=True) */
 
         /* --- Pestañas de Navegación --- */
         button[data-baseweb="tab"] {
@@ -214,7 +208,7 @@ def main_app():
             """
             **SaludIA: Predictor de Diabetes** es una aplicación diseñada para la prevención y concienciación sobre la Diabetes tipo 2.
             
-            - **Versión:** 12.0 (Interfaz Renovada y Autenticación)
+            - **Versión:** 12.1 (Corrección de UI)
             - **Autor:** Joseph Javier Sánchez Acuña
             - **Tecnologías:** Streamlit, Firebase, Google Gemini AI.
             
@@ -269,14 +263,18 @@ def login_page():
                     st.warning("Por favor, ingresa un correo y una contraseña.")
 
 
-# --- LÓGICA PRINCIPAL DE LA APLICACIÓN ---
+# --- LÓGICA PRINCIPAL DE LA APLICACIÓN (CORREGIDA) ---
 load_css()
 
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 
+# CORRECCIÓN: Se elimina el parámetro `height=None` y se usa un bloque `with`
+# para renderizar el contenido, que es la forma correcta en Streamlit.
 if st.session_state['logged_in']:
-    st.container(border=True, height=None).write(main_app())
+    with st.container(border=True):
+        main_app()
 else:
-    st.container(border=True, height=None).write(login_page())
+    with st.container(border=True):
+        login_page()
 
