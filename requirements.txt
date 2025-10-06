@@ -4,5 +4,6 @@ plotly
 numpy
 firebase-admin
 fpdf
-google-generativeai>=0.8.0
+google-generativeai
 Pyrebase4
+setuptools
