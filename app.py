@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v13.1 (Mejoras de UI/UX)
+Software Predictivo de Diabetes con IA v13.2 (Diseño Pulido y Claridad)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Esta versión mejora la experiencia de usuario (UX) moviendo el botón de
-"Cerrar Sesión" a una posición permanentemente visible en la cabecera.
-También se ajusta el estilo de las pestañas para garantizar que el texto
-sea siempre legible.
+Esta versión pule la interfaz de usuario, mejorando la legibilidad de las
+pestañas de navegación y del botón de cerrar sesión. Se introduce un título
+principal más dinámico y se ajustan los estilos para una experiencia visual
+más cohesiva y profesional.
 """
 
 import streamlit as st
@@ -36,17 +36,19 @@ def load_css():
         }
         .stApp > header { background-color: transparent; }
 
-        /* --- Títulos Principales --- */
+        /* --- Títulos Principales (MEJORADOS) --- */
         .main-title {
-            font-size: 2.8rem; /* Ajustado para mejor alineación */
+            font-size: 3.2rem;
             font-weight: 700;
-            padding: 0;
-            margin: 0;
-            background: -webkit-linear-gradient(45deg, #004AAD, #0089BA);
+            text-align: center;
+            padding: 1rem 0;
+            background: -webkit-linear-gradient(45deg, #004AAD, #00C2FF);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            animation: fadeIn 1s ease-in-out;
         }
-        .subtitle { color: #556270; padding-bottom: 2rem; margin-top: 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .subtitle { text-align: center; color: #556270; padding-bottom: 2rem; }
 
         /* --- Tarjetas / Contenedores --- */
         [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {
@@ -57,24 +59,30 @@ def load_css():
             box-shadow: 0 8px 30px rgba(0,0,0,0.05);
         }
 
-        /* --- Pestañas de Navegación (MEJORADAS) --- */
+        /* --- Pestañas de Navegación (CORREGIDAS) --- */
         button[data-baseweb="tab"] {
-            font-size: 1rem; /* Ligeramente más pequeño para que quepa */
+            font-size: 1rem;
             font-weight: 700;
             border-radius: 10px;
             margin: 0 5px;
             transition: all 0.3s ease;
             color: #4A5568;
-            padding: 0.75rem 1rem;
-            white-space: nowrap; /* Evita que el texto se parta en dos líneas */
+            padding: 0.75rem 1.2rem;
+            white-space: nowrap;
+        }
+        button[data-baseweb="tab"] > div {
+            color: #4A5568; /* Asegura color de texto por defecto */
         }
         button[data-baseweb="tab"][aria-selected="true"] {
             background-image: linear-gradient(45deg, #004AAD, #0089BA);
-            color: white !important; /* Asegura que el texto sea blanco y visible */
             box-shadow: 0 4px 15px rgba(0, 74, 173, 0.3);
         }
+        /* CORRECCIÓN CLAVE: El texto de la pestaña seleccionada ahora es siempre blanco y visible */
+        button[data-baseweb="tab"][aria-selected="true"] > div {
+            color: white !important;
+        }
 
-        /* --- Botón de Cerrar Sesión (NUEVO) --- */
+        /* --- Botón de Cerrar Sesión (CORREGIDO) --- */
         .logout-button-container {
             display: flex;
             justify-content: flex-end;
@@ -83,13 +91,14 @@ def load_css():
         }
         .logout-button-container .stButton>button {
             background-image: none;
-            background-color: #FEE2E2; /* Rojo claro */
-            color: #DC2626; /* Rojo oscuro */
+            background-color: #FEE2E2;
+            color: #B91C1C !important; /* CORRECCIÓN: Asegura que el texto sea rojo oscuro y visible */
             border: 1px solid #FCA5A5;
+            font-weight: 700; /* Hace el texto más legible */
         }
         .logout-button-container .stButton>button:hover {
             background-color: #FECACA;
-            color: #B91C1C;
+            color: #991B1B !important;
             border-color: #F87171;
         }
         
@@ -140,14 +149,16 @@ def main_app():
     header_col1, header_col2 = st.columns([0.8, 0.2])
     with header_col1:
         st.markdown('<p class="main-title">🩺 SaludIA</p>', unsafe_allow_html=True)
-        st.markdown('<p class="subtitle">Tu predictor inteligente de riesgo de Diabetes</p>', unsafe_allow_html=True)
     with header_col2:
         st.markdown('<div class="logout-button-container">', unsafe_allow_html=True)
-        if st.button("🔌 Cerrar Sesión"):
+        if st.button("🚪 Cerrar Sesión"):
             st.session_state['logged_in'] = False
             st.session_state['user_uid'] = None
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('<p class="subtitle">Tu asistente inteligente para la prevención de la Diabetes</p>', unsafe_allow_html=True)
+
 
     tab1, tab2, tab3, tab4 = st.tabs([
         "🏠 **Realizar Nuevo Test**",
@@ -253,7 +264,7 @@ def main_app():
             """
             **SaludIA: Predictor de Diabetes** es una aplicación diseñada para la prevención y concienciación sobre la Diabetes tipo 2.
             
-            - **Versión:** 13.1 (UI/UX Mejorada)
+            - **Versión:** 13.2 (Diseño Pulido)
             - **Autor:** Joseph Javier Sánchez Acuña
             - **Tecnologías:** Streamlit, Firebase, Google Gemini AI.
             
