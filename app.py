@@ -158,9 +158,11 @@ def llamar_gemini(prompt):
         ]
         
         modelos_disponibles = [
-            "gemini-1.5-pro-001",
-            "gemini-1.5-flash-001",
-            "gemini-1.5-flash",
+            "gemini-2.0-flash-exp",  # Modelo experimental más reciente
+            "gemini-1.5-flash-latest",  # Versión más reciente de 1.5
+            "gemini-1.5-pro-latest",   # Versión más reciente de 1.5 pro
+            "gemini-1.5-flash",        # Modelo básico
+            "gemini-1.5-pro",          # Modelo pro básico
         ]
         
         for modelo in modelos_disponibles:
