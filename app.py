@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v16.0 (Rediseño Total y Animaciones)
+Software Predictivo de Diabetes con IA v17.0 (Diseño Final y Definitivo)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Esta es la versión definitiva con un rediseño completo de la interfaz.
-Se introduce un nuevo "hero section" para el título, una paleta de colores
-vibrante, y animaciones fluidas en todos los botones y elementos interactivos
-para una experiencia de usuario de primer nivel.
+Versión final con un rediseño completo de la interfaz, adoptando un layout
+profesional con una barra de navegación lateral. Se introduce una paleta de
+colores "health-tech", iconos, tarjetas con sombras suaves y micro-animaciones
+en todos los elementos para una experiencia de usuario premium.
 """
 
 import streamlit as st
@@ -32,131 +32,122 @@ def load_css():
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
         
         :root {
-            --bg-color: #F7F9FC;
-            --text-color: #2D3748;
-            --card-bg: white;
-            --card-shadow: 0 10px 35px rgba(0, 0, 0, 0.05);
+            --bg-color: #F8FAFC;
+            --sidebar-bg: #FFFFFF;
+            --card-bg: #FFFFFF;
+            --text-color: #334155;
+            --title-color: #0F172A;
+            --subtle-text: #64748B;
             --border-color: #E2E8F0;
             --primary-color: #3B82F6;
             --primary-hover: #2563EB;
-            --primary-gradient: linear-gradient(90deg, #3B82F6, #1D4ED8);
-            --logout-bg: #EF4444;
-            --logout-hover-bg: #DC2626;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --gradient: linear-gradient(135deg, #3B82F6 0%, #6D28D9 100%);
         }
 
         [data-theme="dark"] {
-            --bg-color: #1A202C;
-            --text-color: #E2E8F0;
-            --card-bg: #2D3748;
-            --card-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
-            --border-color: #4A5568;
+            --bg-color: #0F172A;
+            --sidebar-bg: #1E293B;
+            --card-bg: #1E293B;
+            --text-color: #CBD5E1;
+            --title-color: #F8FAFC;
+            --subtle-text: #94A3B8;
+            --border-color: #334155;
             --primary-color: #60A5FA;
             --primary-hover: #3B82F6;
-            --primary-gradient: linear-gradient(90deg, #60A5FA, #2563EB);
-            --logout-bg: #F87171;
-            --logout-hover-bg: #EF4444;
         }
 
+        /* --- Estructura y Ocultar Elementos de Streamlit --- */
         html, body, [class*="st-"] {
             font-family: 'Poppins', sans-serif;
             background-color: var(--bg-color);
-            color: var(--text-color);
         }
-        .stApp > header { background-color: transparent; }
+        .stApp > header { display: none; }
+        .main .block-container { padding: 2rem 3rem; }
 
-        /* --- Hero Section para el Título --- */
-        .hero-container {
-            padding: 3rem 1rem;
-            text-align: center;
-            background: var(--card-bg);
-            border-radius: 20px;
-            margin-bottom: 2rem;
-            box-shadow: var(--card-shadow);
-            animation: slideIn 0.8s ease-out;
+        /* --- Barra de Navegación Lateral --- */
+        [data-testid="stSidebar"] {
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem;
         }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
-
-        .hero-title {
-            font-size: 3.8rem;
+        .sidebar-title {
+            font-size: 1.8rem;
             font-weight: 700;
-            background: var(--primary-gradient);
+            margin-bottom: 2rem;
+            background: var(--gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .hero-subtitle {
-            font-size: 1.2rem;
-            color: #718096;
-            margin-top: -1rem;
+        /* Ocultar el punto del radio button */
+        [data-testid="stRadio"] > label > div:first-child { display: none; }
+        /* Estilo de los links de navegación */
+        [data-testid="stRadio"] > label {
+            display: block;
+            padding: 0.8rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--subtle-text);
+            transition: all 0.2s ease-in-out;
         }
-        [data-theme="dark"] .hero-subtitle { color: #A0AEC0; }
-
-        /* --- Títulos de Sección --- */
-        .section-header { text-align: center; font-weight: 600; font-size: 1.8rem; color: var(--text-color); padding-bottom: 0.5rem; margin: 2rem 0 1.5rem 0; }
-
-        /* --- Contenedor Principal con Espaciado --- */
-        .main-container {
-            max-width: 1200px;
-            margin: auto;
-        }
-
-        /* --- Pestañas Animadas --- */
-        .stTabs {
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 2rem;
-        }
-        button[data-baseweb="tab"] {
-            font-size: 1rem; font-weight: 600; border-radius: 8px 8px 0 0; margin: 0 5px;
-            padding: 0.8rem 1.5rem; transition: all 0.3s ease;
-            background-color: transparent; color: #718096; border: none;
-        }
-        button[data-baseweb="tab"]:hover {
+        [data-testid="stRadio"] > label:hover {
             background-color: var(--primary-hover);
             color: white;
+            transform: translateX(5px);
         }
-        button[data-baseweb="tab"][aria-selected="true"] {
-            background: var(--primary-gradient);
+        /* Estilo del link activo */
+        [data-testid="stRadio"] > div[role="radiogroup"] > label[data-in-selection="true"] {
+            background: var(--gradient);
             color: white;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px -5px rgba(59, 130, 246, 0.4);
+        }
+        .sidebar-footer {
+            position: absolute;
+            bottom: 2rem;
+            width: calc(100% - 3rem);
         }
 
-        /* --- Botones con Animación "Cool" --- */
+        /* --- Contenido Principal y Tarjetas --- */
+        .card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+        }
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--title-color);
+            margin-bottom: 2rem;
+        }
+
+        /* --- Botones con Animación Mejorada --- */
         .stButton>button {
-            border-radius: 12px; border: none; font-weight: 600;
-            padding: 14px 32px; transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 600;
+            padding: 0.8rem 1.5rem;
+            transition: all 0.3s ease;
+            background: var(--gradient);
+            color: white;
+            box-shadow: 0 4px 15px -5px rgba(59, 130, 246, 0.4);
         }
         .stButton>button:hover {
-            transform: translateY(-4px) scale(1.03);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px -5px rgba(59, 130, 246, 0.6);
         }
         .stButton>button:active {
-            transform: translateY(-1px) scale(0.98);
+            transform: translateY(-1px);
+        }
+        .stButton.logout-button>button {
+            background: #DC2626;
+        }
+        .stButton.logout-button>button:hover {
+            background: #B91C1C;
         }
         
-        /* Botón Primario */
-        .stButton>button:not(.logout-button) {
-             background: var(--primary-gradient);
-             color: white;
-        }
-        /* Botón de Cerrar Sesión */
-        .logout-button {
-            background: var(--logout-bg) !important;
-            color: white !important;
-        }
-        .logout-button:hover {
-            background: var(--logout-hover-bg) !important;
-        }
-
-        /* --- Formularios --- */
-        .stTextInput input, .stNumberInput input, .stSelectbox > div > div {
-            border-radius: 10px; border: 2px solid var(--border-color);
-            background-color: var(--bg-color); color: var(--text-color);
-        }
-        .stTextInput input:focus, .stNumberInput input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-
     </style>
     """, unsafe_allow_html=True)
 
@@ -175,25 +166,14 @@ firebase, gemini = initialize_services()
 if not firebase or not gemini:
     st.stop()
 
-# --- PÁGINA PRINCIPAL (POST-LOGIN) ---
-def main_app():
-    # --- CABECERA ---
+# --- PÁGINAS DE LA APLICACIÓN ---
+
+def new_test_page():
+    st.markdown('<p class="page-title">Realizar Nuevo Test</p>', unsafe_allow_html=True)
     with st.container():
-        st.markdown('<div class="hero-container">', unsafe_allow_html=True)
-        st.markdown('<p class="hero-title">SaludIA</p>', unsafe_allow_html=True)
-        st.markdown('<p class="hero-subtitle">Tu Predictor Inteligente de Riesgo de Diabetes</p>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "🏠 **Nuevo Test**",
-        "📖 **Historial**",
-        "🤖 **Asistente IA**",
-        "ℹ️ **Acerca de**"
-    ])
-
-    with tab1:
-        st.markdown('<h2 class="section-header">Cuestionario de Riesgo FINDRISC</h2>', unsafe_allow_html=True)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
         with st.form("findrisc_form_v3"):
+            # ... (código del formulario sin cambios)
             col1, col2 = st.columns(2)
             with col1:
                 edad = st.number_input("1. Edad", 18, 120, 40)
@@ -210,6 +190,7 @@ def main_app():
             submit_button = st.form_submit_button("Calcular Riesgo y Generar Reporte", use_container_width=True)
 
         if submit_button:
+            # ... (código de procesamiento de resultados sin cambios)
             if altura > 0:
                 imc = peso / (altura ** 2)
                 puntaje = calcular_puntaje_findrisc(edad, imc, cintura, sexo, actividad, frutas_verduras, hipertension, glucosa_alta, familiar_diabetes)
@@ -234,23 +215,17 @@ def main_app():
             else:
                 st.error("La altura no puede ser cero.")
 
-    with tab4:
-        st.markdown('<h2 class="section-header">ℹ️ Acerca del Proyecto</h2>', unsafe_allow_html=True)
-        st.markdown("""**SaludIA: Predictor de Diabetes**...""")
-        st.metric(label="Modelo de IA Activo", value=gemini.get_last_used_model())
-        
-        # Botón de Cerrar Sesión ahora dentro de la última pestaña
-        if st.button("🚪 Cerrar Sesión", key="logout_main", help="Haz clic para salir de tu cuenta"):
-             st.session_state['logged_in'] = False
-             st.session_state['user_uid'] = None
-             st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    with tab2:
-        st.markdown('<h2 class="section-header">📖 Tu Historial de Tests</h2>', unsafe_allow_html=True)
+def history_page():
+    st.markdown('<p class="page-title">Historial de Tests</p>', unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
         historial = firebase.cargar_datos_test(st.session_state['user_uid'])
         if historial:
             st.success(f"Se encontraron {len(historial)} registros en tu historial.")
             for test in historial:
+                # ... (código del historial sin cambios)
                 fecha_test = datetime.fromisoformat(test['fecha']).strftime('%d-%m-%Y %H:%M')
                 with st.expander(f"Test del {fecha_test} - Puntaje: {test.get('puntaje', 'N/A')} ({test.get('nivel_riesgo', 'N/A')})"):
                     st.write(f"**IMC:** {test.get('imc', 0):.2f}, **Cintura:** {test.get('cintura', 'N/A')} cm")
@@ -258,10 +233,14 @@ def main_app():
                     st.subheader("Análisis de IA de este resultado:")
                     st.markdown(test.get("analisis_ia", "No hay análisis disponible."))
         else:
-            st.info("Aún no has realizado ningún test.")
+            st.info("Aún no has realizado ningún test. ¡Completa uno para ver tu historial!")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    with tab3:
-        st.markdown('<h2 class="section-header">🤖 Asistente de Diabetes con IA (Chatbot)</h2>', unsafe_allow_html=True)
+def chatbot_page():
+    st.markdown('<p class="page-title">Asistente de IA</p>', unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        # ... (código del chatbot sin cambios)
         if "chat_history" not in st.session_state: st.session_state.chat_history = []
         for msg in st.session_state.chat_history:
             with st.chat_message(msg["role"]): st.markdown(msg["content"])
@@ -273,58 +252,96 @@ def main_app():
                 respuesta = gemini.llamar_gemini_directo(full_prompt)
                 st.session_state.chat_history.append({"role": "assistant", "content": respuesta})
             with st.chat_message("assistant"): st.markdown(respuesta)
+        st.markdown('</div>', unsafe_allow_html=True)
 
+def about_page():
+    st.markdown('<p class="page-title">Acerca del Proyecto</p>', unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        # ... (código de "Acerca de" sin cambios)
+        st.markdown(
+            """
+            **SaludIA: Predictor de Diabetes** es una aplicación diseñada para la prevención y concienciación sobre la Diabetes tipo 2.
+            - **Versión:** 17.0 (Diseño Final)
+            - **Autor:** Joseph Javier Sánchez Acuña
+            - **Tecnologías:** Streamlit, Firebase, Google Gemini AI.
+            *Este software es una herramienta de estimación y no reemplaza el diagnóstico de un profesional médico.*
+            """
+        )
+        st.metric(label="Modelo de IA Activo", value=gemini.get_last_used_model())
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # --- PÁGINA DE LOGIN Y REGISTRO ---
 def login_page():
-    st.markdown('<div class="hero-container">', unsafe_allow_html=True)
-    st.markdown('<p class="hero-title">SaludIA</p>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-subtitle">Tu Predictor Inteligente de Riesgo de Diabetes</p>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align: center;">', unsafe_allow_html=True)
+    st.markdown('<h1 class="sidebar-title" style="font-size: 3rem; margin-bottom: 1rem;">Bienvenido a SaludIA</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="color: var(--subtle-text); font-size: 1.1rem;">Tu asistente inteligente para la prevención de la diabetes.</p>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    _, center_col, _ = st.columns([1, 1.5, 1])
+    _, center_col, _ = st.columns([1, 1.2, 1])
     with center_col:
-        login_tab, signup_tab = st.tabs(["**Iniciar Sesión**", "**Registrarse**"])
-        with login_tab:
-            with st.form("login_form"):
-                email = st.text_input("Correo Electrónico")
-                password = st.text_input("Contraseña", type="password")
-                login_button = st.form_submit_button("Ingresar", use_container_width=True)
-
-                if login_button:
-                    user_uid = firebase.verify_user(email, password)
-                    if user_uid:
-                        st.session_state['logged_in'] = True
-                        st.session_state['user_uid'] = user_uid
-                        st.rerun()
-                    else:
-                        st.error("Correo o contraseña incorrectos.")
-        
-        with signup_tab:
-            with st.form("signup_form"):
-                new_email = st.text_input("Correo Electrónico para registrarse")
-                new_password = st.text_input("Crea una Contraseña", type="password")
-                signup_button = st.form_submit_button("Registrarme", use_container_width=True)
-
-                if signup_button:
-                    if new_email and new_password:
-                        success, message = firebase.create_user(new_email, new_password)
-                        if success:
-                            st.success(message)
-                            st.info("Ahora puedes iniciar sesión.")
+        with st.container():
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            login_tab, signup_tab = st.tabs(["**Iniciar Sesión**", "**Registrarse**"])
+            with login_tab:
+                with st.form("login_form"):
+                    email = st.text_input("Correo Electrónico")
+                    password = st.text_input("Contraseña", type="password")
+                    login_button = st.form_submit_button("Ingresar", use_container_width=True)
+                    if login_button:
+                        user_uid = firebase.verify_user(email, password)
+                        if user_uid:
+                            st.session_state['logged_in'] = True
+                            st.session_state['user_uid'] = user_uid
+                            st.rerun()
                         else:
-                            st.error(message)
-                    else:
-                        st.warning("Por favor, ingresa un correo y una contraseña.")
+                            st.error("Correo o contraseña incorrectos.")
+            
+            with signup_tab:
+                with st.form("signup_form"):
+                    new_email = st.text_input("Correo Electrónico para registrarse")
+                    new_password = st.text_input("Crea una Contraseña", type="password")
+                    signup_button = st.form_submit_button("Registrarme", use_container_width=True)
+                    if signup_button:
+                        if new_email and new_password:
+                            success, message = firebase.create_user(new_email, new_password)
+                            if success:
+                                st.success(message)
+                                st.info("Ahora puedes iniciar sesión.")
+                            else:
+                                st.error(message)
+                        else:
+                            st.warning("Por favor, ingresa un correo y una contraseña.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
-
-# --- LÓGICA PRINCIPAL ---
-st.markdown('<div class="main-container">', unsafe_allow_html=True)
+# --- LÓGICA PRINCIPAL DE LA APLICACIÓN ---
 load_css()
 if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
+
 if st.session_state['logged_in']:
-    main_app()
+    # --- LAYOUT CON BARRA LATERAL ---
+    with st.sidebar:
+        st.markdown('<p class="sidebar-title">SaludIA</p>', unsafe_allow_html=True)
+        
+        # Menú de Navegación
+        page_options = ["🏠 Nuevo Test", "📖 Historial", "🤖 Asistente IA", "ℹ️ Acerca de"]
+        selected_page = st.radio("Navegación", page_options, label_visibility="collapsed")
+
+        # Footer de la barra lateral con el botón de logout
+        st.markdown('<div class="sidebar-footer">', unsafe_allow_html=True)
+        st.button("🚪 Cerrar Sesión", key="logout_sidebar", on_click=lambda: st.session_state.update({'logged_in': False, 'user_uid': None}), use_container_width=True, type="primary")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- Contenido de la página seleccionada ---
+    if selected_page == "🏠 Nuevo Test":
+        new_test_page()
+    elif selected_page == "📖 Historial":
+        history_page()
+    elif selected_page == "🤖 Asistente IA":
+        chatbot_page()
+    elif selected_page == "ℹ️ Acerca de":
+        about_page()
+
 else:
     login_page()
-st.markdown('</div>', unsafe_allow_html=True)
 
