@@ -43,8 +43,11 @@ class GeminiUtils:
         # Se prioriza 'gemini-1.5-flash-latest' por ser moderno y eficiente.
         # 'gemini-pro' es un excelente modelo de respaldo.
         modelos_disponibles = [
-            "gemini-1.5-flash-latest",
-            "gemini-pro",
+            "gemini-2.0-flash-exp",  # Modelo experimental más reciente
+            "gemini-1.5-flash-latest",  # Versión más reciente de 1.5
+            "gemini-1.5-pro-latest",   # Versión más reciente de 1.5 pro
+            "gemini-1.5-flash",        # Modelo básico
+            "gemini-1.5-pro",          # Modelo pro básico
         ]
         
         for modelo in modelos_disponibles:
