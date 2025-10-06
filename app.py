@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v15.0 (Interfaz Centrada y Clara)
+Software Predictivo de Diabetes con IA v16.0 (Rediseño Total y Animaciones)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Esta versión refina por completo la interfaz de usuario, centrando los títulos,
-mejorando drásticamente la legibilidad de los botones y pestañas con un nuevo
-diseño de alto contraste, y reorganizando la cabecera para una experiencia
-más limpia, profesional y equilibrada.
+Esta es la versión definitiva con un rediseño completo de la interfaz.
+Se introduce un nuevo "hero section" para el título, una paleta de colores
+vibrante, y animaciones fluidas en todos los botones y elementos interactivos
+para una experiencia de usuario de primer nivel.
 """
 
 import streamlit as st
@@ -24,118 +24,139 @@ st.set_page_config(
     page_icon="🩺"
 )
 
-# --- INYECCIÓN DE CSS PARA ESTILOS PREMIUM Y ADAPTABLES (CLARO/OSCURO) ---
+# --- INYECCIÓN DE CSS PARA UN REDISEÑO TOTAL ---
 def load_css():
     st.markdown("""
     <style>
-        /* --- Variables de Tema (Claro y Oscuro) --- */
+        /* --- Fuentes y Tema Base --- */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        
         :root {
-            --bg-color: #F0F4F8;
-            --text-color: #111827;
+            --bg-color: #F7F9FC;
+            --text-color: #2D3748;
             --card-bg: white;
-            --card-shadow: 0 8px 30px rgba(0,0,0,0.05);
-            --border-color: #E0E0E0;
-            --primary-grad-start: #004AAD;
-            --primary-grad-end: #0089BA;
-            --tab-text-color: #4A5568;
-            --logout-bg: #DC2626; /* Rojo Fuerte */
-            --logout-hover-bg: #B91C1C; /* Rojo más oscuro */
-        }
-
-        [data-theme="dark"] {
-            --bg-color: #0E1117;
-            --text-color: #FAFAFA;
-            --card-bg: #1F2937;
-            --card-shadow: 0 8px 30px rgba(0,0,0,0.2);
-            --border-color: #374151;
-            --primary-grad-start: #0089BA;
-            --primary-grad-end: #00DFFF;
-            --tab-text-color: #9CA3AF;
+            --card-shadow: 0 10px 35px rgba(0, 0, 0, 0.05);
+            --border-color: #E2E8F0;
+            --primary-color: #3B82F6;
+            --primary-hover: #2563EB;
+            --primary-gradient: linear-gradient(90deg, #3B82F6, #1D4ED8);
             --logout-bg: #EF4444;
             --logout-hover-bg: #DC2626;
         }
 
-        /* --- Estilos Generales --- */
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+        [data-theme="dark"] {
+            --bg-color: #1A202C;
+            --text-color: #E2E8F0;
+            --card-bg: #2D3748;
+            --card-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+            --border-color: #4A5568;
+            --primary-color: #60A5FA;
+            --primary-hover: #3B82F6;
+            --primary-gradient: linear-gradient(90deg, #60A5FA, #2563EB);
+            --logout-bg: #F87171;
+            --logout-hover-bg: #EF4444;
+        }
+
         html, body, [class*="st-"] {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Poppins', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
         }
         .stApp > header { background-color: transparent; }
 
-        /* --- Cabecera y Títulos (MEJORADOS) --- */
-        .main-header-container { text-align: center; margin-bottom: 2rem; }
-        .main-title {
-            font-size: 3.5rem; font-weight: 700;
-            background: -webkit-linear-gradient(45deg, var(--primary-grad-start), var(--primary-grad-end));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            animation: fadeIn 1s ease-in-out;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        .subtitle { color: #556270; }
-        [data-theme="dark"] .subtitle { color: #9CA3AF; }
-
-        /* --- Títulos de Sección Centrados --- */
-        .section-header {
+        /* --- Hero Section para el Título --- */
+        .hero-container {
+            padding: 3rem 1rem;
             text-align: center;
+            background: var(--card-bg);
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            animation: slideIn 0.8s ease-out;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+
+        .hero-title {
+            font-size: 3.8rem;
             font-weight: 700;
-            color: var(--text-color);
-            padding-bottom: 0.5rem;
-            margin-top: 2rem;
-            margin-bottom: 1.5rem;
-            border-bottom: 2px solid var(--primary-grad-end);
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: #718096;
+            margin-top: -1rem;
+        }
+        [data-theme="dark"] .hero-subtitle { color: #A0AEC0; }
+
+        /* --- Títulos de Sección --- */
+        .section-header { text-align: center; font-weight: 600; font-size: 1.8rem; color: var(--text-color); padding-bottom: 0.5rem; margin: 2rem 0 1.5rem 0; }
+
+        /* --- Contenedor Principal con Espaciado --- */
+        .main-container {
+            max-width: 1200px;
+            margin: auto;
         }
 
-        /* --- Tarjetas y Contenedores --- */
-        [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {
-            border: 1px solid var(--border-color); border-radius: 20px; padding: 2rem;
-            background-color: var(--card-bg); box-shadow: var(--card-shadow);
+        /* --- Pestañas Animadas --- */
+        .stTabs {
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 2rem;
         }
-
-        /* --- Pestañas de Navegación (Legibilidad Mejorada) --- */
         button[data-baseweb="tab"] {
-            font-size: 1rem; font-weight: 700; border-radius: 10px; margin: 0 5px;
-            transition: all 0.3s ease; padding: 0.75rem 1.2rem; white-space: nowrap;
-            background-color: transparent;
+            font-size: 1rem; font-weight: 600; border-radius: 8px 8px 0 0; margin: 0 5px;
+            padding: 0.8rem 1.5rem; transition: all 0.3s ease;
+            background-color: transparent; color: #718096; border: none;
         }
-        button[data-baseweb="tab"] > div { color: var(--tab-text-color); }
+        button[data-baseweb="tab"]:hover {
+            background-color: var(--primary-hover);
+            color: white;
+        }
         button[data-baseweb="tab"][aria-selected="true"] {
-            background-image: linear-gradient(45deg, var(--primary-grad-start), var(--primary-grad-end));
-            box-shadow: 0 4px 15px rgba(0, 137, 186, 0.3);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2); /* Sombra para resaltar texto */
+            background: var(--primary-gradient);
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
-        button[data-baseweb="tab"][aria-selected="true"] > div { color: white !important; }
 
-        /* --- Botón de Cerrar Sesión (Alto Contraste) --- */
-        .logout-button-container { display: flex; justify-content: flex-end; align-items: center; }
-        .logout-button-container .stButton>button {
-            background-image: none;
-            background-color: var(--logout-bg);
-            color: white !important; /* Texto siempre blanco */
-            border: none;
-            font-weight: 700;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2); /* Sombra para resaltar texto */
-        }
-        .logout-button-container .stButton>button:hover { background-color: var(--logout-hover-bg); }
-        
-        /* --- Botones Primarios --- */
+        /* --- Botones con Animación "Cool" --- */
         .stButton>button {
-            border-radius: 10px; border: none; background-image: linear-gradient(45deg, var(--primary-grad-start), var(--primary-grad-end));
-            color: white; padding: 12px 30px; font-weight: 700; transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 137, 186, 0.2);
+            border-radius: 12px; border: none; font-weight: 600;
+            padding: 14px 32px; transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
-        .stButton>button:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0, 137, 186, 0.3); }
+        .stButton>button:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        .stButton>button:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+        
+        /* Botón Primario */
+        .stButton>button:not(.logout-button) {
+             background: var(--primary-gradient);
+             color: white;
+        }
+        /* Botón de Cerrar Sesión */
+        .logout-button {
+            background: var(--logout-bg) !important;
+            color: white !important;
+        }
+        .logout-button:hover {
+            background: var(--logout-hover-bg) !important;
+        }
 
-        /* --- Formularios y Entradas --- */
+        /* --- Formularios --- */
         .stTextInput input, .stNumberInput input, .stSelectbox > div > div {
-            border-radius: 10px; border: 1px solid var(--border-color);
+            border-radius: 10px; border: 2px solid var(--border-color);
             background-color: var(--bg-color); color: var(--text-color);
         }
         .stTextInput input:focus, .stNumberInput input:focus {
-            border-color: var(--primary-grad-end);
-            box-shadow: 0 0 0 2px rgba(0, 137, 186, 0.2);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -156,25 +177,17 @@ if not firebase or not gemini:
 
 # --- PÁGINA PRINCIPAL (POST-LOGIN) ---
 def main_app():
-    # --- CABECERA REESTRUCTURADA ---
-    main_header_cols = st.columns([0.2, 0.6, 0.2])
-    with main_header_cols[1]:
-        st.markdown('<div class="main-header-container">', unsafe_allow_html=True)
-        st.markdown('<p class="main-title">SaludIA - Predictor de Diabetes</p>', unsafe_allow_html=True)
-        st.markdown('<p class="subtitle">Tu asistente inteligente para la prevención de la Diabetes</p>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    with main_header_cols[2]:
-        st.markdown('<div class="logout-button-container">', unsafe_allow_html=True)
-        if st.button("🚪 Cerrar Sesión"):
-            st.session_state['logged_in'] = False
-            st.session_state['user_uid'] = None
-            st.rerun()
+    # --- CABECERA ---
+    with st.container():
+        st.markdown('<div class="hero-container">', unsafe_allow_html=True)
+        st.markdown('<p class="hero-title">SaludIA</p>', unsafe_allow_html=True)
+        st.markdown('<p class="hero-subtitle">Tu Predictor Inteligente de Riesgo de Diabetes</p>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     tab1, tab2, tab3, tab4 = st.tabs([
-        "🏠 **Realizar Nuevo Test**",
-        "📖 **Consultar Historial**",
-        "🤖 **Asistente de IA**",
+        "🏠 **Nuevo Test**",
+        "📖 **Historial**",
+        "🤖 **Asistente IA**",
         "ℹ️ **Acerca de**"
     ])
 
@@ -202,13 +215,10 @@ def main_app():
                 puntaje = calcular_puntaje_findrisc(edad, imc, cintura, sexo, actividad, frutas_verduras, hipertension, glucosa_alta, familiar_diabetes)
                 nivel_riesgo, estimacion = obtener_interpretacion_riesgo(puntaje)
                 datos_usuario = {"fecha": datetime.now().isoformat(), "edad": edad, "sexo": sexo, "imc": imc, "cintura": cintura, "actividad": actividad, "frutas_verduras": frutas_verduras, "hipertension": hipertension, "glucosa_alta": glucosa_alta, "familiar_diabetes": familiar_diabetes, "puntaje": puntaje, "nivel_riesgo": nivel_riesgo, "estimacion": estimacion}
-                
                 with st.spinner("🤖 Analizando tus resultados con IA..."):
                     analisis_ia = gemini.obtener_analisis_ia(datos_usuario)
                     datos_usuario["analisis_ia"] = analisis_ia
-
                 st.markdown('<h2 class="section-header">Resultados de tu Evaluación</h2>', unsafe_allow_html=True)
-                
                 res_col1, res_col2 = st.columns([1, 1])
                 with res_col1:
                     st.plotly_chart(generar_grafico_riesgo(puntaje), use_container_width=True)
@@ -216,16 +226,24 @@ def main_app():
                     st.metric("Puntaje FINDRISC", f"{puntaje} puntos")
                     st.metric("Nivel de Riesgo", nivel_riesgo)
                     st.info(f"**Estimación a 10 años:** {estimacion}")
-                
                 st.markdown('<h3 class="section-header">🧠 Análisis y Recomendaciones por IA</h3>', unsafe_allow_html=True)
                 st.markdown(f'<div style="background-color: var(--bg-color); padding: 1.5rem; border-radius: 10px;">{analisis_ia}</div>', unsafe_allow_html=True)
-
                 firebase.guardar_datos_test(st.session_state['user_uid'], datos_usuario)
-                
                 pdf_bytes = generar_pdf(datos_usuario)
                 st.download_button(label="📥 Descargar Reporte en PDF", data=pdf_bytes, file_name=f"Reporte_Diabetes_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
             else:
                 st.error("La altura no puede ser cero.")
+
+    with tab4:
+        st.markdown('<h2 class="section-header">ℹ️ Acerca del Proyecto</h2>', unsafe_allow_html=True)
+        st.markdown("""**SaludIA: Predictor de Diabetes**...""")
+        st.metric(label="Modelo de IA Activo", value=gemini.get_last_used_model())
+        
+        # Botón de Cerrar Sesión ahora dentro de la última pestaña
+        if st.button("🚪 Cerrar Sesión", key="logout_main", help="Haz clic para salir de tu cuenta"):
+             st.session_state['logged_in'] = False
+             st.session_state['user_uid'] = None
+             st.rerun()
 
     with tab2:
         st.markdown('<h2 class="section-header">📖 Tu Historial de Tests</h2>', unsafe_allow_html=True)
@@ -240,7 +258,7 @@ def main_app():
                     st.subheader("Análisis de IA de este resultado:")
                     st.markdown(test.get("analisis_ia", "No hay análisis disponible."))
         else:
-            st.info("Aún no has realizado ningún test. ¡Completa uno en la pestaña 'Realizar Nuevo Test'!")
+            st.info("Aún no has realizado ningún test.")
 
     with tab3:
         st.markdown('<h2 class="section-header">🤖 Asistente de Diabetes con IA (Chatbot)</h2>', unsafe_allow_html=True)
@@ -255,25 +273,14 @@ def main_app():
                 respuesta = gemini.llamar_gemini_directo(full_prompt)
                 st.session_state.chat_history.append({"role": "assistant", "content": respuesta})
             with st.chat_message("assistant"): st.markdown(respuesta)
-    
-    with tab4:
-        st.markdown('<h2 class="section-header">ℹ️ Acerca del Proyecto</h2>', unsafe_allow_html=True)
-        st.markdown(
-            """
-            **SaludIA: Predictor de Diabetes** es una aplicación diseñada para la prevención y concienciación sobre la Diabetes tipo 2.
-            - **Versión:** 15.0 (Interfaz Centrada)
-            - **Autor:** Joseph Javier Sánchez Acuña
-            - **Tecnologías:** Streamlit, Firebase, Google Gemini AI.
-            *Este software es una herramienta de estimación y no reemplaza el diagnóstico de un profesional médico.*
-            """
-        )
-        st.metric(label="Modelo de IA Activo", value=gemini.get_last_used_model())
 
 
 # --- PÁGINA DE LOGIN Y REGISTRO ---
 def login_page():
-    st.markdown('<p class="main-title">SaludIA - Predictor de Diabetes</p>', unsafe_allow_html=True)
-    st.markdown('<p class="subtitle">Tu asistente personal para la prevención de la diabetes. Inicia sesión o regístrate para comenzar.</p>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-container">', unsafe_allow_html=True)
+    st.markdown('<p class="hero-title">SaludIA</p>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-subtitle">Tu Predictor Inteligente de Riesgo de Diabetes</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     _, center_col, _ = st.columns([1, 1.5, 1])
     with center_col:
@@ -312,10 +319,12 @@ def login_page():
 
 
 # --- LÓGICA PRINCIPAL ---
+st.markdown('<div class="main-container">', unsafe_allow_html=True)
 load_css()
 if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
 if st.session_state['logged_in']:
     main_app()
 else:
-    with st.container(): login_page()
+    login_page()
+st.markdown('</div>', unsafe_allow_html=True)
 
