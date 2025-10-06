@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v14.0 (Diseño Premium y Adaptable)
+Software Predictivo de Diabetes con IA v15.0 (Interfaz Centrada y Clara)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Esta versión final introduce un diseño premium con un título más grande y
-llamativo, una paleta de colores renovada y soporte completo para temas
-claro y oscuro, garantizando una legibilidad y experiencia de usuario
-óptimas en cualquier configuración.
+Esta versión refina por completo la interfaz de usuario, centrando los títulos,
+mejorando drásticamente la legibilidad de los botones y pestañas con un nuevo
+diseño de alto contraste, y reorganizando la cabecera para una experiencia
+más limpia, profesional y equilibrada.
 """
 
 import streamlit as st
@@ -38,6 +38,8 @@ def load_css():
             --primary-grad-start: #004AAD;
             --primary-grad-end: #0089BA;
             --tab-text-color: #4A5568;
+            --logout-bg: #DC2626; /* Rojo Fuerte */
+            --logout-hover-bg: #B91C1C; /* Rojo más oscuro */
         }
 
         [data-theme="dark"] {
@@ -49,6 +51,8 @@ def load_css():
             --primary-grad-start: #0089BA;
             --primary-grad-end: #00DFFF;
             --tab-text-color: #9CA3AF;
+            --logout-bg: #EF4444;
+            --logout-hover-bg: #DC2626;
         }
 
         /* --- Estilos Generales --- */
@@ -60,70 +64,60 @@ def load_css():
         }
         .stApp > header { background-color: transparent; }
 
-        /* --- Título Principal (Más Grande y Llamativo) --- */
+        /* --- Cabecera y Títulos (MEJORADOS) --- */
+        .main-header-container { text-align: center; margin-bottom: 2rem; }
         .main-title {
-            font-size: 3.5rem;
-            font-weight: 700;
-            text-align: center;
-            padding: 1rem 0;
+            font-size: 3.5rem; font-weight: 700;
             background: -webkit-linear-gradient(45deg, var(--primary-grad-start), var(--primary-grad-end));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             animation: fadeIn 1s ease-in-out;
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        .subtitle { 
-            text-align: center; 
-            color: #556270; 
-            padding-bottom: 2rem; 
-        }
+        .subtitle { color: #556270; }
         [data-theme="dark"] .subtitle { color: #9CA3AF; }
 
-        /* --- Tarjetas y Contenedores Adaptables --- */
+        /* --- Títulos de Sección Centrados --- */
+        .section-header {
+            text-align: center;
+            font-weight: 700;
+            color: var(--text-color);
+            padding-bottom: 0.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--primary-grad-end);
+        }
+
+        /* --- Tarjetas y Contenedores --- */
         [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 2rem;
-            background-color: var(--card-bg);
-            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color); border-radius: 20px; padding: 2rem;
+            background-color: var(--card-bg); box-shadow: var(--card-shadow);
         }
 
         /* --- Pestañas de Navegación (Legibilidad Mejorada) --- */
         button[data-baseweb="tab"] {
-            font-size: 1rem;
-            font-weight: 700;
-            border-radius: 10px;
-            margin: 0 5px;
-            transition: all 0.3s ease;
-            padding: 0.75rem 1.2rem;
-            white-space: nowrap;
+            font-size: 1rem; font-weight: 700; border-radius: 10px; margin: 0 5px;
+            transition: all 0.3s ease; padding: 0.75rem 1.2rem; white-space: nowrap;
             background-color: transparent;
         }
-        button[data-baseweb="tab"] > div {
-            color: var(--tab-text-color);
-        }
+        button[data-baseweb="tab"] > div { color: var(--tab-text-color); }
         button[data-baseweb="tab"][aria-selected="true"] {
             background-image: linear-gradient(45deg, var(--primary-grad-start), var(--primary-grad-end));
             box-shadow: 0 4px 15px rgba(0, 137, 186, 0.3);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2); /* Sombra para resaltar texto */
         }
-        button[data-baseweb="tab"][aria-selected="true"] > div {
-            color: white !important; /* Asegura texto blanco y visible */
-        }
+        button[data-baseweb="tab"][aria-selected="true"] > div { color: white !important; }
 
-        /* --- Botón de Cerrar Sesión (Adaptable) --- */
-        .logout-button-container { display: flex; justify-content: flex-end; align-items: center; height: 100%; }
+        /* --- Botón de Cerrar Sesión (Alto Contraste) --- */
+        .logout-button-container { display: flex; justify-content: flex-end; align-items: center; }
         .logout-button-container .stButton>button {
             background-image: none;
-            background-color: #FEE2E2;
-            color: #B91C1C !important;
-            border: 1px solid #FCA5A5;
+            background-color: var(--logout-bg);
+            color: white !important; /* Texto siempre blanco */
+            border: none;
             font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2); /* Sombra para resaltar texto */
         }
-        .logout-button-container .stButton>button:hover { background-color: #FECACA; color: #991B1B !important; }
-        [data-theme="dark"] .logout-button-container .stButton>button {
-            background-color: #450A0A; color: #F87171 !important; border: 1px solid #7F1D1D;
-        }
-        [data-theme="dark"] .logout-button-container .stButton>button:hover { background-color: #7F1D1D; color: #FCA5A5 !important; }
+        .logout-button-container .stButton>button:hover { background-color: var(--logout-hover-bg); }
         
         /* --- Botones Primarios --- */
         .stButton>button {
@@ -162,20 +156,20 @@ if not firebase or not gemini:
 
 # --- PÁGINA PRINCIPAL (POST-LOGIN) ---
 def main_app():
-    # --- CABECERA CON BOTÓN DE CERRAR SESIÓN ---
-    header_col1, header_col2 = st.columns([0.8, 0.2])
-    with header_col1:
-        # TÍTULO ACTUALIZADO
+    # --- CABECERA REESTRUCTURADA ---
+    main_header_cols = st.columns([0.2, 0.6, 0.2])
+    with main_header_cols[1]:
+        st.markdown('<div class="main-header-container">', unsafe_allow_html=True)
         st.markdown('<p class="main-title">SaludIA - Predictor de Diabetes</p>', unsafe_allow_html=True)
-    with header_col2:
+        st.markdown('<p class="subtitle">Tu asistente inteligente para la prevención de la Diabetes</p>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    with main_header_cols[2]:
         st.markdown('<div class="logout-button-container">', unsafe_allow_html=True)
         if st.button("🚪 Cerrar Sesión"):
             st.session_state['logged_in'] = False
             st.session_state['user_uid'] = None
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<p class="subtitle">Tu asistente inteligente para la prevención de la Diabetes</p>', unsafe_allow_html=True)
 
     tab1, tab2, tab3, tab4 = st.tabs([
         "🏠 **Realizar Nuevo Test**",
@@ -185,7 +179,7 @@ def main_app():
     ])
 
     with tab1:
-        st.header("Cuestionario de Riesgo FINDRISC")
+        st.markdown('<h2 class="section-header">Cuestionario de Riesgo FINDRISC</h2>', unsafe_allow_html=True)
         with st.form("findrisc_form_v3"):
             col1, col2 = st.columns(2)
             with col1:
@@ -213,8 +207,7 @@ def main_app():
                     analisis_ia = gemini.obtener_analisis_ia(datos_usuario)
                     datos_usuario["analisis_ia"] = analisis_ia
 
-                st.markdown("---")
-                st.header("Resultados de tu Evaluación")
+                st.markdown('<h2 class="section-header">Resultados de tu Evaluación</h2>', unsafe_allow_html=True)
                 
                 res_col1, res_col2 = st.columns([1, 1])
                 with res_col1:
@@ -224,7 +217,7 @@ def main_app():
                     st.metric("Nivel de Riesgo", nivel_riesgo)
                     st.info(f"**Estimación a 10 años:** {estimacion}")
                 
-                st.subheader("🧠 Análisis y Recomendaciones por IA")
+                st.markdown('<h3 class="section-header">🧠 Análisis y Recomendaciones por IA</h3>', unsafe_allow_html=True)
                 st.markdown(f'<div style="background-color: var(--bg-color); padding: 1.5rem; border-radius: 10px;">{analisis_ia}</div>', unsafe_allow_html=True)
 
                 firebase.guardar_datos_test(st.session_state['user_uid'], datos_usuario)
@@ -235,9 +228,7 @@ def main_app():
                 st.error("La altura no puede ser cero.")
 
     with tab2:
-        st.header("📖 Tu Historial de Tests")
-        st.markdown("Aquí puedes ver todos los tests que has realizado.")
-        
+        st.markdown('<h2 class="section-header">📖 Tu Historial de Tests</h2>', unsafe_allow_html=True)
         historial = firebase.cargar_datos_test(st.session_state['user_uid'])
         if historial:
             st.success(f"Se encontraron {len(historial)} registros en tu historial.")
@@ -252,39 +243,27 @@ def main_app():
             st.info("Aún no has realizado ningún test. ¡Completa uno en la pestaña 'Realizar Nuevo Test'!")
 
     with tab3:
-        st.header("🤖 Asistente de Diabetes con IA (Chatbot)")
-        st.markdown("Hazme una pregunta sobre la diabetes, nutrición o hábitos saludables.")
-
-        if "chat_history" not in st.session_state:
-            st.session_state.chat_history = []
-
+        st.markdown('<h2 class="section-header">🤖 Asistente de Diabetes con IA (Chatbot)</h2>', unsafe_allow_html=True)
+        if "chat_history" not in st.session_state: st.session_state.chat_history = []
         for msg in st.session_state.chat_history:
-            with st.chat_message(msg["role"]):
-                st.markdown(msg["content"])
-
+            with st.chat_message(msg["role"]): st.markdown(msg["content"])
         if prompt := st.chat_input("Escribe tu pregunta aquí..."):
             st.session_state.chat_history.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
-
+            with st.chat_message("user"): st.markdown(prompt)
             with st.spinner("Pensando..."):
                 full_prompt = f"Como un asistente de salud experto en diabetes, responde la siguiente pregunta de forma clara y concisa en español: '{prompt}'"
                 respuesta = gemini.llamar_gemini_directo(full_prompt)
                 st.session_state.chat_history.append({"role": "assistant", "content": respuesta})
-            
-            with st.chat_message("assistant"):
-                st.markdown(respuesta)
+            with st.chat_message("assistant"): st.markdown(respuesta)
     
     with tab4:
-        st.header("ℹ️ Acerca del Proyecto")
+        st.markdown('<h2 class="section-header">ℹ️ Acerca del Proyecto</h2>', unsafe_allow_html=True)
         st.markdown(
             """
             **SaludIA: Predictor de Diabetes** es una aplicación diseñada para la prevención y concienciación sobre la Diabetes tipo 2.
-            
-            - **Versión:** 14.0 (Diseño Premium)
+            - **Versión:** 15.0 (Interfaz Centrada)
             - **Autor:** Joseph Javier Sánchez Acuña
             - **Tecnologías:** Streamlit, Firebase, Google Gemini AI.
-            
             *Este software es una herramienta de estimación y no reemplaza el diagnóstico de un profesional médico.*
             """
         )
@@ -293,7 +272,6 @@ def main_app():
 
 # --- PÁGINA DE LOGIN Y REGISTRO ---
 def login_page():
-    # TÍTULO ACTUALIZADO
     st.markdown('<p class="main-title">SaludIA - Predictor de Diabetes</p>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle">Tu asistente personal para la prevención de la diabetes. Inicia sesión o regístrate para comenzar.</p>', unsafe_allow_html=True)
 
@@ -335,13 +313,9 @@ def login_page():
 
 # --- LÓGICA PRINCIPAL ---
 load_css()
-
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
+if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
 if st.session_state['logged_in']:
     main_app()
 else:
-    with st.container():
-        login_page()
+    with st.container(): login_page()
 
