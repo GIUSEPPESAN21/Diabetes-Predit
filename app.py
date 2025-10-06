@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v12.1 (Corrección de UI)
+Software Predictivo de Diabetes con IA v12.2 (Corrección de API Streamlit)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Esta versión corrige un error de renderizado en st.container que impedía
-el inicio de la aplicación. Se ha modificado la forma en que se dibujan
-los contenedores principales para seguir las mejores prácticas de Streamlit.
+Esta versión corrige un 'AttributeError' reemplazando la función obsoleta
+'st.experimental_rerun()' por la función moderna 'st.rerun()', asegurando
+compatibilidad con las versiones actuales de Streamlit.
 """
 
 import streamlit as st
@@ -208,7 +208,7 @@ def main_app():
             """
             **SaludIA: Predictor de Diabetes** es una aplicación diseñada para la prevención y concienciación sobre la Diabetes tipo 2.
             
-            - **Versión:** 12.1 (Corrección de UI)
+            - **Versión:** 12.2 (Corrección de API)
             - **Autor:** Joseph Javier Sánchez Acuña
             - **Tecnologías:** Streamlit, Firebase, Google Gemini AI.
             
@@ -220,7 +220,8 @@ def main_app():
         if st.button("Cerrar Sesión"):
             st.session_state['logged_in'] = False
             st.session_state['user_uid'] = None
-            st.experimental_rerun()
+            # CORRECCIÓN: Usar la función moderna para recargar la página
+            st.rerun()
 
 
 # --- PÁGINA DE LOGIN Y REGISTRO ---
@@ -241,7 +242,8 @@ def login_page():
                 if user_uid:
                     st.session_state['logged_in'] = True
                     st.session_state['user_uid'] = user_uid
-                    st.experimental_rerun()
+                    # CORRECCIÓN: Usar la función moderna para recargar la página
+                    st.rerun()
                 else:
                     st.error("Correo o contraseña incorrectos.")
     
@@ -263,14 +265,12 @@ def login_page():
                     st.warning("Por favor, ingresa un correo y una contraseña.")
 
 
-# --- LÓGICA PRINCIPAL DE LA APLICACIÓN (CORREGIDA) ---
+# --- LÓGICA PRINCIPAL DE LA APLICACIÓN ---
 load_css()
 
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 
-# CORRECCIÓN: Se elimina el parámetro `height=None` y se usa un bloque `with`
-# para renderizar el contenido, que es la forma correcta en Streamlit.
 if st.session_state['logged_in']:
     with st.container(border=True):
         main_app()
