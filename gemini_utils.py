@@ -47,9 +47,11 @@ class GeminiUtils:
         # Lista de modelos actualizada, priorizando los más recientes y estables.
         # Si uno falla, automáticamente intentará con el siguiente.
         modelos_disponibles = [
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-pro-latest",
-            "gemini-pro", # Un modelo muy estable y confiable como respaldo
+            "gemini-2.0-flash-exp",    # Modelo experimental más reciente
+            "gemini-1.5-flash-latest", # Versión más reciente de 1.5
+            "gemini-1.5-pro-latest",   # Versión más reciente de 1.5 pro
+            "gemini-1.5-flash",        # Modelo básico
+            "gemini-1.5-pro",          # Modelo pro básico
         ]
         
         for modelo in modelos_disponibles:
@@ -97,4 +99,5 @@ class GeminiUtils:
         El tono debe ser profesional, empático y fácil de entender para una persona sin conocimientos médicos.
         """
         return self.llamar_gemini_directo(prompt)
+
 
