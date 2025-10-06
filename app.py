@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Software Predictivo de Diabetes con IA v13.0 (Interfaz Gráfica Renovada)
+Software Predictivo de Diabetes con IA v13.1 (Mejoras de UI/UX)
 Autor: Joseph Javier Sánchez Acuña
 Contacto: joseph.sanchez@uniminuto.edu.co
 
 Descripción:
-Esta versión introduce una renovación completa de la interfaz de usuario (UI)
-con estilos CSS mejorados para un aspecto más moderno, profesional y atractivo.
-Se optimiza la presentación de resultados y la disposición de los elementos.
+Esta versión mejora la experiencia de usuario (UX) moviendo el botón de
+"Cerrar Sesión" a una posición permanentemente visible en la cabecera.
+También se ajusta el estilo de las pestañas para garantizar que el texto
+sea siempre legible.
 """
 
 import streamlit as st
@@ -31,21 +32,21 @@ def load_css():
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
         html, body, [class*="st-"] {
             font-family: 'Roboto', sans-serif;
-            background-color: #F0F4F8; /* Un gris azulado muy claro */
+            background-color: #F0F4F8;
         }
         .stApp > header { background-color: transparent; }
 
         /* --- Títulos Principales --- */
         .main-title {
-            font-size: 3rem;
+            font-size: 2.8rem; /* Ajustado para mejor alineación */
             font-weight: 700;
-            text-align: center;
-            padding: 1rem 0;
+            padding: 0;
+            margin: 0;
             background: -webkit-linear-gradient(45deg, #004AAD, #0089BA);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .subtitle { text-align: center; color: #556270; padding-bottom: 2rem; }
+        .subtitle { color: #556270; padding-bottom: 2rem; margin-top: 0; }
 
         /* --- Tarjetas / Contenedores --- */
         [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {
@@ -56,23 +57,43 @@ def load_css():
             box-shadow: 0 8px 30px rgba(0,0,0,0.05);
         }
 
-        /* --- Pestañas de Navegación --- */
+        /* --- Pestañas de Navegación (MEJORADAS) --- */
         button[data-baseweb="tab"] {
-            font-size: 1.1rem;
+            font-size: 1rem; /* Ligeramente más pequeño para que quepa */
             font-weight: 700;
             border-radius: 10px;
             margin: 0 5px;
             transition: all 0.3s ease;
             color: #4A5568;
-            padding: 0.75rem 1.25rem;
+            padding: 0.75rem 1rem;
+            white-space: nowrap; /* Evita que el texto se parta en dos líneas */
         }
         button[data-baseweb="tab"][aria-selected="true"] {
             background-image: linear-gradient(45deg, #004AAD, #0089BA);
-            color: white;
+            color: white !important; /* Asegura que el texto sea blanco y visible */
             box-shadow: 0 4px 15px rgba(0, 74, 173, 0.3);
         }
 
-        /* --- Botones --- */
+        /* --- Botón de Cerrar Sesión (NUEVO) --- */
+        .logout-button-container {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            height: 100%;
+        }
+        .logout-button-container .stButton>button {
+            background-image: none;
+            background-color: #FEE2E2; /* Rojo claro */
+            color: #DC2626; /* Rojo oscuro */
+            border: 1px solid #FCA5A5;
+        }
+        .logout-button-container .stButton>button:hover {
+            background-color: #FECACA;
+            color: #B91C1C;
+            border-color: #F87171;
+        }
+        
+        /* --- Botones Primarios --- */
         .stButton>button {
             border-radius: 10px;
             border: none;
@@ -90,12 +111,10 @@ def load_css():
 
         /* --- Formularios y Entradas --- */
         .stTextInput input, .stNumberInput input, .stSelectbox > div > div {
-            border-radius: 10px;
-            border: 1px solid #D1D5DB;
+            border-radius: 10px; border: 1px solid #D1D5DB;
         }
         .stTextInput input:focus, .stNumberInput input:focus {
-            border-color: #004AAD;
-            box-shadow: 0 0 0 2px rgba(0, 74, 173, 0.2);
+            border-color: #004AAD; box-shadow: 0 0 0 2px rgba(0, 74, 173, 0.2);
         }
     </style>
     """, unsafe_allow_html=True)
@@ -117,8 +136,18 @@ if not firebase or not gemini:
 
 # --- PÁGINA PRINCIPAL (POST-LOGIN) ---
 def main_app():
-    st.markdown('<p class="main-title">🩺 SaludIA: Predictor de Riesgo de Diabetes</p>', unsafe_allow_html=True)
-    st.markdown('<p class="subtitle">Una herramienta inteligente que utiliza el Cuestionario FINDRISC y la IA de Gemini para estimar tu riesgo de desarrollar Diabetes tipo 2.</p>', unsafe_allow_html=True)
+    # --- CABECERA CON BOTÓN DE CERRAR SESIÓN SIEMPRE VISIBLE ---
+    header_col1, header_col2 = st.columns([0.8, 0.2])
+    with header_col1:
+        st.markdown('<p class="main-title">🩺 SaludIA</p>', unsafe_allow_html=True)
+        st.markdown('<p class="subtitle">Tu predictor inteligente de riesgo de Diabetes</p>', unsafe_allow_html=True)
+    with header_col2:
+        st.markdown('<div class="logout-button-container">', unsafe_allow_html=True)
+        if st.button("🔌 Cerrar Sesión"):
+            st.session_state['logged_in'] = False
+            st.session_state['user_uid'] = None
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     tab1, tab2, tab3, tab4 = st.tabs([
         "🏠 **Realizar Nuevo Test**",
@@ -131,7 +160,6 @@ def main_app():
         st.header("Cuestionario de Riesgo FINDRISC")
         with st.form("findrisc_form_v3"):
             col1, col2 = st.columns(2)
-            # ... (el resto del formulario no cambia)
             with col1:
                 edad = st.number_input("1. Edad", 18, 120, 40)
                 sexo = st.selectbox("2. Sexo", ("Masculino", "Femenino"))
@@ -160,7 +188,6 @@ def main_app():
                 st.markdown("---")
                 st.header("Resultados de tu Evaluación")
                 
-                # --- NUEVA PRESENTACIÓN DE RESULTADOS ---
                 res_col1, res_col2 = st.columns([1, 1])
                 with res_col1:
                     st.plotly_chart(generar_grafico_riesgo(puntaje), use_container_width=True)
@@ -179,7 +206,6 @@ def main_app():
             else:
                 st.error("La altura no puede ser cero.")
 
-    # ... (El resto de las pestañas no cambian su lógica)
     with tab2:
         st.header("📖 Tu Historial de Tests")
         st.markdown("Aquí puedes ver todos los tests que has realizado.")
@@ -227,7 +253,7 @@ def main_app():
             """
             **SaludIA: Predictor de Diabetes** es una aplicación diseñada para la prevención y concienciación sobre la Diabetes tipo 2.
             
-            - **Versión:** 13.0 (UI Renovada)
+            - **Versión:** 13.1 (UI/UX Mejorada)
             - **Autor:** Joseph Javier Sánchez Acuña
             - **Tecnologías:** Streamlit, Firebase, Google Gemini AI.
             
@@ -235,11 +261,6 @@ def main_app():
             """
         )
         st.metric(label="Modelo de IA Activo", value=gemini.get_last_used_model())
-        
-        if st.button("Cerrar Sesión"):
-            st.session_state['logged_in'] = False
-            st.session_state['user_uid'] = None
-            st.rerun()
 
 
 # --- PÁGINA DE LOGIN Y REGISTRO ---
@@ -247,7 +268,6 @@ def login_page():
     st.markdown('<p class="main-title">Bienvenido a SaludIA 🩺</p>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle">Tu asistente personal para la prevención de la diabetes. Inicia sesión o regístrate para comenzar.</p>', unsafe_allow_html=True)
 
-    # --- Centrar el formulario de login ---
     _, center_col, _ = st.columns([1, 1.5, 1])
     with center_col:
         login_tab, signup_tab = st.tabs(["**Iniciar Sesión**", "**Registrarse**"])
@@ -293,7 +313,6 @@ if 'logged_in' not in st.session_state:
 if st.session_state['logged_in']:
     main_app()
 else:
-    # Contenedor principal para la página de login
     with st.container():
         login_page()
 
