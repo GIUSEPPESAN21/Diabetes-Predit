@@ -47,11 +47,8 @@ class GeminiUtils:
         # Lista de modelos actualizada, priorizando los más recientes y estables.
         # Si uno falla, automáticamente intentará con el siguiente.
         modelos_disponibles = [
-            "gemini-2.0-flash-exp",    # Modelo experimental más reciente
-            "gemini-1.5-flash-latest", # Versión más reciente de 1.5
-            "gemini-1.5-pro-latest",   # Versión más reciente de 1.5 pro
-            "gemini-1.5-flash",        # Modelo básico
-            "gemini-1.5-pro",          # Modelo pro básico
+            "gemini-flash-latest",      # Alias oficial de Google: siempre apunta al Flash vigente
+            "gemini-flash-lite-latest", # Alias oficial: Flash-Lite vigente (fallback)
         ]
         
         for modelo in modelos_disponibles:
